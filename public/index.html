@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DEML Executive Channel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --onyx: #0A0B0D;
+    --graphite: #15171B;
+    --panel: #101215;
+    --line: rgba(200,205,212,0.14);
+    --platinum: #C8CDD4;
+    --muted: #7B818C;
+    --gold: #B08D57;
+    --gold-bright: #C9A46B;
+    --danger: #B25050;
+
+    --display: 'Space Grotesk', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+    --body: 'Inter', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--onyx); color: var(--platinum); font-family: var(--body); overflow-x: hidden; cursor: none; }
+  @media (hover: none) { html, body { cursor: auto; } #signal-cursor { display: none; } }
+  a { color: inherit; }
+  .hidden { display: none !important; }
+
+  /* ---------- Custom signal-pulse cursor ---------- */
+  #signal-cursor { position: fixed; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: 9999; }
+  .signal-dot { position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 8px 2px rgba(201,164,107,0.6); }
+  .signal-ring { position: absolute; top: 0; left: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 1px solid rgba(201,164,107,0.55); animation: ambient-pulse 2.6s ease-out infinite; }
+  @keyframes ambient-pulse { 0% { transform: scale(0.4); opacity: 0.9; } 100% { transform: scale(1.6); opacity: 0; } }
+  .click-burst { position: fixed; top: 0; left: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 1.5px solid var(--gold-bright); pointer-events: none; z-index: 9998; animation: burst 0.7s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes burst { 0% { transform: scale(0.3); opacity: 1; } 100% { transform: scale(6); opacity: 0; } }
+
+  /* ---------- Ticker ---------- */
+  .ticker { position: relative; z-index: 2; overflow: hidden; border-bottom: 1px solid var(--line); background: var(--graphite); white-space: nowrap; padding: 8px 0; }
+  .ticker-track { display: inline-block; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em; color: var(--muted); animation: scroll-left 26s linear infinite; }
+  .ticker-track span { margin-right: 40px; }
+  .ticker-track span.dot { color: var(--gold); }
+  @keyframes scroll-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* ---------- Ambient backdrop ---------- */
+  .backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(600px circle at 82% 18%, rgba(176,141,87,0.10), transparent 60%), radial-gradient(500px circle at 10% 70%, rgba(176,141,87,0.06), transparent 60%); }
+  .grid-lines { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-image: linear-gradient(rgba(200,205,212,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(200,205,212,0.035) 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(circle at 60% 30%, black, transparent 75%); }
+
+  header, main, footer, #dashboard { position: relative; z-index: 1; }
+
+  header { display: flex; align-items: center; justify-content: space-between; padding: 26px clamp(24px, 6vw, 72px); }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark { width: 30px; height: 30px; flex-shrink: 0; }
+  .logo-text { font-family: var(--display); font-weight: 700; font-size: 1.05rem; letter-spacing: 0.02em; color: var(--platinum); line-height: 1.15; }
+  .logo-text small { display: block; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.18em; color: var(--gold); font-weight: 400; margin-top: 2px; }
+
+  .btn { font-family: var(--body); font-weight: 600; font-size: 0.88rem; border: 1px solid var(--line); background: transparent; color: var(--platinum); padding: 11px 24px; border-radius: 2px; letter-spacing: 0.03em; transition: border-color 0.25s ease, transform 0.15s ease, background 0.25s ease; cursor: none; }
+  .btn:hover { border-color: var(--gold); transform: translateY(-1px); }
+  .btn.solid { background: var(--gold); border-color: var(--gold); color: #16130c; }
+  .btn.solid:hover { background: var(--gold-bright); border-color: var(--gold-bright); }
+  .btn.small { padding: 7px 14px; font-size: 0.78rem; }
+  .btn.danger { border-color: var(--danger); color: #e0a2a2; }
+  .btn.danger:hover { background: var(--danger); color: #fff; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .header-actions { display: flex; align-items: center; gap: 22px; }
+  .btn-ghost { background: none; border: none; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 4px 0; border-bottom: 1px solid transparent; transition: color 0.25s ease, border-color 0.25s ease; cursor: none; }
+  .btn-ghost:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
+
+  /* ---------- Hero ---------- */
+  .hero { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 0 clamp(24px, 6vw, 72px); }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; margin: 0 0 18px; opacity: 0; animation: fade-up 0.6s ease forwards; animation-delay: 0.1s; }
+  .headline { font-family: var(--display); font-weight: 600; font-size: clamp(2.4rem, 6vw, 4.6rem); line-height: 1.06; margin: 0; max-width: 880px; letter-spacing: -0.01em; }
+  .headline .line { display: block; overflow: hidden; }
+  .headline .line span { display: inline-block; transform: translateY(100%); opacity: 0; filter: blur(6px); animation: rise-clear 0.75s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes rise-clear { to { transform: translateY(0); opacity: 1; filter: blur(0); } }
+  .subhead { font-size: clamp(1rem, 1.5vw, 1.15rem); color: var(--muted); max-width: 540px; margin: 26px 0 36px; line-height: 1.6; opacity: 0; animation: fade-up 0.7s ease forwards; animation-delay: 1.15s; }
+  @keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .hero-actions { display: flex; gap: 14px; opacity: 0; animation: fade-up 0.7s ease forwards; animation-delay: 1.35s; }
+
+  .channels { padding: 60px clamp(24px, 6vw, 72px) 110px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .channel { background: var(--onyx); padding: 34px 30px; opacity: 0; transform: translateY(20px); transition: background 0.3s ease; }
+  .channel.visible { animation: fade-up 0.6s ease forwards; }
+  .channel:hover { background: var(--graphite); }
+  .channel .idx { font-family: var(--mono); font-size: 0.75rem; color: var(--gold); letter-spacing: 0.1em; display: block; margin-bottom: 14px; }
+  .channel h3 { font-family: var(--display); font-size: 1.2rem; font-weight: 600; margin: 0 0 10px; color: var(--platinum); }
+  .channel p { font-size: 0.92rem; color: var(--muted); line-height: 1.6; margin: 0; }
+
+  footer { padding: 26px clamp(24px, 6vw, 72px) 40px; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; color: var(--muted); border-top: 1px solid var(--line); }
+
+  /* ---------- Overlays / panels ---------- */
+  .overlay { position: fixed; inset: 0; z-index: 50; display: flex; justify-content: center; align-items: center; background: rgba(6,7,9,0); pointer-events: none; transition: background 0.4s ease; }
+  .overlay.open { background: rgba(6,7,9,0.72); pointer-events: auto; }
+  .panel { width: min(420px, 92vw); max-height: 88vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); padding: clamp(30px, 5vw, 46px); position: relative; transform: translateY(24px) scale(0.98); opacity: 0; transition: transform 0.5s cubic-bezier(.2,.7,.2,1), opacity 0.4s ease; }
+  .overlay.open .panel { transform: translateY(0) scale(1); opacity: 1; }
+  .panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+  .panel-close { position: absolute; top: 18px; right: 20px; background: none; border: none; font-size: 1.3rem; color: var(--muted); cursor: none; }
+  .panel-close:hover { color: var(--platinum); }
+  .panel-eyebrow { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; margin: 0 0 8px; }
+  .panel-title { font-family: var(--display); font-weight: 600; font-size: 1.7rem; color: var(--platinum); margin: 0 0 20px; }
+  .panel-president { width: min(480px, 92vw); }
+  .seal { width: 40px; height: 40px; margin-bottom: 14px; }
+  .seal svg { width: 100%; height: 100%; }
+  .president-note { font-size: 0.86rem; color: var(--muted); line-height: 1.55; margin: -12px 0 24px; }
+
+  .field { margin-bottom: 24px; }
+  .field label { display: block; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 9px; }
+  .field input, .field textarea, .field select { width: 100%; border: none; border-bottom: 1px solid var(--line); background: transparent; font-family: var(--body); font-size: 1rem; padding: 8px 2px; color: var(--platinum); outline: none; transition: border-color 0.25s ease; resize: vertical; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--gold); }
+
+  .panel .btn.solid { width: 100%; padding: 14px; font-size: 0.94rem; margin-top: 4px; position: relative; overflow: hidden; }
+  .submit-ring { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; border: 1px solid rgba(22,19,12,0.5); transform: scale(0); opacity: 0; }
+  .btn.solid.pulsing .submit-ring { animation: submit-pulse 0.7s ease-out forwards; }
+  @keyframes submit-pulse { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(40); opacity: 0; } }
+  .btn.solid span.label { position: relative; z-index: 1; }
+
+  .form-status { font-family: var(--mono); font-size: 0.76rem; color: var(--gold); min-height: 16px; margin-top: -12px; margin-bottom: 14px; }
+
+  .exec-list { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 18px; }
+  .exec-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .exec-row .name { font-family: var(--display); font-size: 0.94rem; color: var(--platinum); }
+  .exec-row .desig { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; }
+
+  /* ---------- Dashboard shell ---------- */
+  #dashboard { min-height: 100vh; display: flex; flex-direction: column; }
+  .dash-top { display: flex; align-items: center; justify-content: space-between; padding: 18px clamp(20px, 4vw, 48px); border-bottom: 1px solid var(--line); background: var(--graphite); }
+  .dash-tabs { display: flex; gap: 4px; }
+  .dash-tab { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: none; border: none; padding: 9px 16px; border-radius: 2px; cursor: none; transition: color 0.2s ease, background 0.2s ease; }
+  .dash-tab:hover { color: var(--platinum); }
+  .dash-tab.active { color: #16130c; background: var(--gold); }
+  .dash-user { display: flex; align-items: center; gap: 12px; }
+  .dash-user .who { text-align: right; }
+  .dash-user .who .n { font-family: var(--display); font-size: 0.9rem; }
+  .dash-user .who .d { font-family: var(--mono); font-size: 0.65rem; color: var(--gold); letter-spacing: 0.06em; }
+  .avatar-sm { width: 34px; height: 34px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line); object-fit: cover; }
+
+  .dash-body { flex: 1; padding: clamp(24px, 4vw, 48px); max-width: 1100px; margin: 0 auto; width: 100%; }
+  .dash-panel { display: none; }
+  .dash-panel.active { display: block; animation: fade-up 0.4s ease; }
+  .section-title { font-family: var(--display); font-size: 1.5rem; margin: 0 0 24px; }
+
+  /* Profile */
+  .profile-grid { display: grid; grid-template-columns: 140px 1fr; gap: 36px; }
+  .avatar-edit { text-align: center; }
+  .avatar-big { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; background: var(--graphite); border: 1px solid var(--line); display: block; margin-bottom: 10px; }
+  .social-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .social-row input { flex: 1; }
+  .social-row button { flex-shrink: 0; }
+
+  /* Todo */
+  .todo-add { display: flex; gap: 10px; margin-bottom: 20px; }
+  .todo-add input { flex: 1; }
+  .todo-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .todo-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--gold); cursor: none; }
+  .todo-row .content { flex: 1; font-size: 0.95rem; }
+  .todo-row.done .content { color: var(--muted); text-decoration: line-through; }
+  .todo-row button { background: none; border: none; color: var(--muted); font-size: 0.9rem; cursor: none; }
+  .todo-row button:hover { color: var(--danger); }
+
+  /* Messages */
+  .msg-layout { display: grid; grid-template-columns: 280px 1fr; gap: 0; border: 1px solid var(--line); height: 62vh; min-height: 460px; }
+  .msg-sidebar { border-right: 1px solid var(--line); overflow-y: auto; display: flex; flex-direction: column; }
+  .msg-sidebar-section { padding: 14px 16px 6px; font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .msg-contact, .msg-convo { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: none; transition: background 0.2s ease; }
+  .msg-contact:hover, .msg-convo:hover { background: var(--graphite); }
+  .msg-convo.active { background: var(--graphite); border-left: 2px solid var(--gold); }
+  .msg-name { font-size: 0.88rem; }
+  .msg-sub { font-family: var(--mono); font-size: 0.66rem; color: var(--muted); }
+  .msg-thread { display: flex; flex-direction: column; }
+  .msg-thread-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  .msg-scroll { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .bubble { max-width: 70%; padding: 10px 14px; border-radius: 3px; font-size: 0.9rem; line-height: 1.45; }
+  .bubble.mine { align-self: flex-end; background: var(--gold); color: #16130c; }
+  .bubble.theirs { align-self: flex-start; background: var(--graphite); border: 1px solid var(--line); }
+  .bubble .meta { display: block; margin-top: 4px; font-family: var(--mono); font-size: 0.62rem; opacity: 0.75; text-align: right; }
+  .tick { margin-left: 4px; }
+  .tick.read { color: #16130c; font-weight: 700; }
+  .msg-input-row { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--line); }
+  .msg-input-row input { flex: 1; background: transparent; border: 1px solid var(--line); border-radius: 2px; padding: 10px 12px; color: var(--platinum); font-family: var(--body); outline: none; }
+  .msg-input-row input:focus { border-color: var(--gold); }
+  .typing-note { font-family: var(--mono); font-size: 0.66rem; color: var(--gold); padding: 0 20px 8px; min-height: 14px; }
+  .msg-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 0.9rem; }
+
+  /* Meeting */
+  .meeting-host-form { display: flex; gap: 10px; margin-bottom: 28px; }
+  .meeting-host-form input { flex: 1; }
+  .meeting-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .meeting-info .t { font-family: var(--display); font-size: 1rem; }
+  .meeting-info .m { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+
+  .call-overlay, .meeting-room { position: fixed; inset: 0; z-index: 60; background: var(--onyx); display: flex; flex-direction: column; }
+  .call-top, .room-top { padding: 16px clamp(20px,4vw,48px); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
+  .tile-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; padding: clamp(20px,4vw,48px); align-content: start; }
+  .tile { background: var(--graphite); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; position: relative; aspect-ratio: 4/3; }
+  .tile video { width: 100%; height: 100%; object-fit: cover; }
+  .tile .label { position: absolute; bottom: 8px; left: 8px; font-family: var(--mono); font-size: 0.68rem; background: rgba(0,0,0,0.5); padding: 3px 8px; border-radius: 2px; }
+  .call-controls, .room-controls { display: flex; gap: 12px; justify-content: center; padding: 20px; border-top: 1px solid var(--line); }
+  .incoming-call { position: fixed; top: 20px; right: 20px; z-index: 70; background: var(--panel); border: 1px solid var(--gold); padding: 18px 22px; border-radius: 4px; display: flex; align-items: center; gap: 16px; }
+
+  @media (max-width: 760px) {
+    .msg-layout { grid-template-columns: 1fr; height: auto; }
+    .profile-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="signal-cursor"><div class="signal-ring"></div><div class="signal-dot"></div></div>
+<div class="backdrop"></div>
+<div class="grid-lines"></div>
+
+<div class="ticker"><div class="ticker-track" id="ticker-track"></div></div>
+
+<header id="landing-header">
+  <div class="logo">
+    <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="15" stroke="#B08D57" stroke-width="1.2"/>
+      <circle cx="16" cy="16" r="2.4" fill="#C9A46B"/>
+      <path d="M16 6.5a9.5 9.5 0 0 1 9.5 9.5" stroke="#B08D57" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M16 3.5a12.5 12.5 0 0 1 12.5 12.5" stroke="#B08D57" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
+    </svg>
+    <div class="logo-text">DEML<small>EXECUTIVE&nbsp;CHANNEL</small></div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-ghost" id="open-president">President Access</button>
+    <button class="btn" id="open-signin">Sign in</button>
+  </div>
+</header>
+
+<main id="landing-main">
+  <section class="hero">
+    <p class="eyebrow">Verified network · By invitation only</p>
+    <h1 class="headline" id="headline"></h1>
+    <p class="subhead">DEML Executive Channel connects verified leaders for real-time briefings, direct conversation, and President-hosted meetings — no public feed, no delay, no noise.</p>
+    <div class="hero-actions">
+      <button class="btn solid" id="open-signin-2">Sign in</button>
+    </div>
+  </section>
+
+  <section class="channels">
+    <div class="channel"><span class="idx">01 — MESSAGES</span><h3>Real-time conversation</h3><p>Direct or group messages, delivered instantly with delivery and read indicators, plus voice and video calls.</p></div>
+    <div class="channel"><span class="idx">02 — MEETINGS</span><h3>President-hosted rooms</h3><p>Live meetings hosted exclusively by the President, capped at ten participants.</p></div>
+    <div class="channel"><span class="idx">03 — PROFILE &amp; TASKS</span><h3>Your own space</h3><p>A profile with your bio and links, and a private to-do list only you can see.</p></div>
+  </section>
+</main>
+
+<footer id="landing-footer">
+  <span>© 2026 DEML EXECUTIVE CHANNEL</span>
+  <span>ACCESS BY INVITATION</span>
+</footer>
+
+<!-- ---------- Sign-in overlay (Executives) ---------- -->
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <button class="panel-close" id="close-signin" aria-label="Close">&times;</button>
+    <p class="panel-eyebrow">DEML Executive Channel</p>
+    <h2 class="panel-title">Sign in</h2>
+    <form id="auth-form">
+      <div class="field"><label for="username">Username</label><input id="username" type="text" autocomplete="username" required /></div>
+      <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required /></div>
+      <p class="form-status" id="form-status"></p>
+      <button type="submit" class="btn solid" id="submit-btn"><span class="submit-ring"></span><span class="label">Enter channel</span></button>
+    </form>
+  </div>
+</div>
+
+<!-- ---------- President Access overlay ---------- -->
+<div class="overlay" id="president-overlay">
+  <div class="panel panel-president">
+    <button class="panel-close" id="close-president" aria-label="Close">&times;</button>
+    <div class="seal"><svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="18" stroke="#B08D57" stroke-width="1"/>
+      <circle cx="20" cy="20" r="13" stroke="#B08D57" stroke-width="0.6" opacity="0.6"/>
+      <path d="M20 10 L23 17 L30.5 17.5 L24.8 22.3 L26.8 29.5 L20 25.3 L13.2 29.5 L15.2 22.3 L9.5 17.5 L17 17 Z" fill="#B08D57" opacity="0.9"/>
+    </svg></div>
+    <p class="panel-eyebrow">Office of the President</p>
+    <h2 class="panel-title">President Access</h2>
+    <p class="president-note">Only the President can create Executive accounts — set a username, designation, and password directly.</p>
+
+    <div id="president-login-step">
+      <form id="president-form">
+        <div class="field"><label for="p-username">Username</label><input id="p-username" type="text" autocomplete="username" required /></div>
+        <div class="field"><label for="p-password">Password</label><input id="p-password" type="password" autocomplete="current-password" required /></div>
+        <p class="form-status" id="president-status"></p>
+        <button type="submit" class="btn solid" id="president-submit"><span class="submit-ring"></span><span class="label">Authenticate</span></button>
+      </form>
+    </div>
+
+    <div id="president-manage-step" class="hidden">
+      <form id="create-exec-form">
+        <div class="field"><label for="e-username">Username</label><input id="e-username" type="text" required /></div>
+        <div class="field"><label for="e-designation">Designation</label><input id="e-designation" type="text" placeholder="e.g. Chief Financial Officer" required /></div>
+        <div class="field"><label for="e-password">Password</label><input id="e-password" type="password" required /></div>
+        <p class="form-status" id="create-exec-status"></p>
+        <button type="submit" class="btn solid" id="create-exec-submit"><span class="submit-ring"></span><span class="label">Create executive</span></button>
+      </form>
+      <div class="exec-list" id="exec-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- Dashboard (post-login) ---------- -->
+<div id="dashboard" class="hidden">
+  <div class="dash-top">
+    <div class="logo">
+      <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="15" stroke="#B08D57" stroke-width="1.2"/><circle cx="16" cy="16" r="2.4" fill="#C9A46B"/>
+      </svg>
+      <div class="logo-text">DEML<small>EXECUTIVE&nbsp;CHANNEL</small></div>
+    </div>
+    <div class="dash-tabs">
+      <button class="dash-tab active" data-tab="profile">Profile</button>
+      <button class="dash-tab" data-tab="todo">To-Do</button>
+      <button class="dash-tab" data-tab="messages">Messages</button>
+      <button class="dash-tab" data-tab="meeting">Meeting</button>
+    </div>
+    <div class="dash-user">
+      <div class="who"><div class="n" id="dash-user-name"></div><div class="d" id="dash-user-desig"></div></div>
+      <img class="avatar-sm" id="dash-user-avatar" src="" alt="" />
+      <button class="btn-ghost" id="sign-out">Sign out</button>
+    </div>
+  </div>
+
+  <div class="dash-body">
+    <!-- Profile -->
+    <div class="dash-panel active" id="panel-profile">
+      <h2 class="section-title">Profile</h2>
+      <div class="profile-grid">
+        <div class="avatar-edit">
+          <img class="avatar-big" id="profile-avatar-preview" src="" alt="" />
+          <input type="file" id="avatar-input" accept="image/*" style="display:none" />
+          <button class="btn small" id="avatar-btn" type="button">Change photo</button>
+        </div>
+        <div>
+          <div class="field"><label>Bio</label><textarea id="profile-bio" rows="3" placeholder="A short bio..."></textarea></div>
+          <div class="field">
+            <label>Social links</label>
+            <div id="social-links-list"></div>
+            <div class="social-row">
+              <input type="text" id="social-platform" placeholder="Platform (e.g. LinkedIn)" style="max-width:160px" />
+              <input type="text" id="social-url" placeholder="https://..." />
+              <button class="btn small" id="add-social" type="button">Add</button>
+            </div>
+          </div>
+          <p class="form-status" id="profile-status"></p>
+          <button class="btn solid" id="save-profile" style="width:auto;padding:11px 26px;"><span class="label">Save profile</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- To-Do -->
+    <div class="dash-panel" id="panel-todo">
+      <h2 class="section-title">To-Do</h2>
+      <div class="todo-add"><input type="text" id="todo-input" placeholder="Add a task..." /><button class="btn solid" id="todo-add-btn" style="width:auto;padding:11px 22px;">Add</button></div>
+      <div id="todo-list"></div>
+    </div>
+
+    <!-- Messages -->
+    <div class="dash-panel" id="panel-messages">
+      <h2 class="section-title">Messages</h2>
+      <div class="msg-layout">
+        <div class="msg-sidebar">
+          <div class="msg-sidebar-section">Conversations</div>
+          <div id="convo-list"></div>
+          <div class="msg-sidebar-section">Executives</div>
+          <div id="contact-list"></div>
+        </div>
+        <div class="msg-thread" id="msg-thread">
+          <div class="msg-empty">Select a conversation or an executive to start messaging.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Meeting -->
+    <div class="dash-panel" id="panel-meeting">
+      <h2 class="section-title">Meeting</h2>
+      <div id="meeting-host-area"></div>
+      <div id="meeting-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- Incoming call banner ---------- -->
+<div class="incoming-call hidden" id="incoming-call-banner">
+  <div>
+    <div style="font-family:var(--display);font-size:0.95rem" id="incoming-call-name">Incoming call</div>
+    <div style="font-family:var(--mono);font-size:0.68rem;color:var(--muted)">Audio/video call</div>
+  </div>
+  <button class="btn small solid" id="accept-call">Accept</button>
+  <button class="btn small danger" id="decline-call">Decline</button>
+</div>
+
+<!-- ---------- Call overlay ---------- -->
+<div class="call-overlay hidden" id="call-overlay">
+  <div class="call-top"><span id="call-status-text">Calling…</span><span></span></div>
+  <div class="tile-grid">
+    <div class="tile"><video id="call-local-video" autoplay muted playsinline></video><span class="label">You</span></div>
+    <div class="tile"><video id="call-remote-video" autoplay playsinline></video><span class="label" id="call-remote-label">Connecting…</span></div>
+  </div>
+  <div class="call-controls">
+    <button class="btn small" id="call-mute">Mute</button>
+    <button class="btn small danger" id="call-hangup">End call</button>
+  </div>
+</div>
+
+<!-- ---------- Meeting room overlay ---------- -->
+<div class="meeting-room hidden" id="meeting-room">
+  <div class="room-top"><span id="room-title-text">Meeting</span><span id="room-count-text"></span></div>
+  <div class="tile-grid" id="room-tile-grid"></div>
+  <div class="room-controls">
+    <button class="btn small" id="room-mute">Mute</button>
+    <button class="btn small danger" id="room-leave">Leave meeting</button>
+  </div>
+</div>
+
+<script>
+const API_BASE = ''; // same origin as the page — works both locally and once hosted online
+const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+
+// ---------- Signal-pulse cursor ----------
+const cursor = document.getElementById('signal-cursor');
+window.addEventListener('mousemove', (e) => { cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`; });
+window.addEventListener('mousedown', (e) => {
+  const burst = document.createElement('div');
+  burst.className = 'click-burst';
+  burst.style.left = e.clientX + 'px'; burst.style.top = e.clientY + 'px';
+  document.body.appendChild(burst);
+  setTimeout(() => burst.remove(), 700);
+});
+
+// ---------- Tone (Web Audio, no external assets) ----------
+function beep(freq, duration, vol) {
+  freq = freq || 880; duration = duration || 130; vol = vol || 0.05;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.frequency.value = freq; gain.gain.value = vol;
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    setTimeout(() => { osc.stop(); ctx.close(); }, duration);
+  } catch (e) {}
+}
+
+// ---------- Ticker ----------
+const tickerItems = ['VERIFIED NETWORK', 'REAL-TIME BRIEFINGS', 'INVITATION ONLY', 'ENCRYPTED CHANNEL', 'DIRECT ACCESS', 'NO PUBLIC FEED'];
+const track = document.getElementById('ticker-track');
+const buildTicker = () => tickerItems.map(t => `<span>${t}</span><span class="dot">·</span>`).join('');
+track.innerHTML = buildTicker() + buildTicker();
+
+// ---------- Headline reveal ----------
+const lines = ["Where decisions", "move before", "the market does."];
+const headlineEl = document.getElementById('headline');
+let hDelay = 0.2;
+lines.forEach((line) => {
+  const lineDiv = document.createElement('span'); lineDiv.className = 'line';
+  line.split(' ').forEach((word) => {
+    const span = document.createElement('span');
+    span.textContent = word + '\u00A0';
+    span.style.animationDelay = hDelay + 's'; hDelay += 0.11;
+    lineDiv.appendChild(span);
+  });
+  headlineEl.appendChild(lineDiv);
+});
+
+const channels = document.querySelectorAll('.channel');
+const chObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry, idx) => {
+    if (entry.isIntersecting) {
+      entry.target.style.animationDelay = (idx * 0.1) + 's';
+      entry.target.classList.add('visible');
+      chObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.2 });
+channels.forEach(c => chObserver.observe(c));
+
+// =========================================================================
+// Session state
+// =========================================================================
+let session = { token: null, user: null };
+let socket = null;
+
+function authHeaders() { return { Authorization: 'Bearer ' + session.token }; }
+async function api(path, opts) {
+  opts = opts || {};
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {}, session.token ? authHeaders() : {});
+  const res = await fetch(API_BASE + path, Object.assign({}, opts, { headers }));
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ---------- Sign-in overlay wiring ----------
+const overlay = document.getElementById('overlay');
+document.getElementById('open-signin').addEventListener('click', () => overlay.classList.add('open'));
+document.getElementById('open-signin-2').addEventListener('click', () => overlay.classList.add('open'));
+document.getElementById('close-signin').addEventListener('click', () => overlay.classList.remove('open'));
+overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+const authForm = document.getElementById('auth-form');
+const formStatus = document.getElementById('form-status');
+const submitBtn = document.getElementById('submit-btn');
+authForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  if (!username || !password) { formStatus.textContent = 'Enter both fields to continue.'; return; }
+  submitBtn.classList.add('pulsing'); formStatus.textContent = 'Verifying credentials…';
+  try {
+    const data = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+    session = { token: data.token, user: data.user };
+    overlay.classList.remove('open');
+    enterDashboard();
+  } catch (err) {
+    formStatus.textContent = err.message;
+  } finally {
+    submitBtn.classList.remove('pulsing');
+  }
+});
+
+// ---------- President overlay wiring ----------
+const presidentOverlay = document.getElementById('president-overlay');
+document.getElementById('open-president').addEventListener('click', () => presidentOverlay.classList.add('open'));
+document.getElementById('close-president').addEventListener('click', () => presidentOverlay.classList.remove('open'));
+presidentOverlay.addEventListener('click', (e) => { if (e.target === presidentOverlay) presidentOverlay.classList.remove('open'); });
+
+const presidentForm = document.getElementById('president-form');
+const presidentStatus = document.getElementById('president-status');
+const presidentSubmit = document.getElementById('president-submit');
+const loginStep = document.getElementById('president-login-step');
+const manageStep = document.getElementById('president-manage-step');
+
+presidentForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const u = document.getElementById('p-username').value.trim();
+  const p = document.getElementById('p-password').value;
+  if (!u || !p) { presidentStatus.textContent = 'Enter both fields to continue.'; return; }
+  presidentSubmit.classList.add('pulsing'); presidentStatus.textContent = 'Verifying President credentials…';
+  try {
+    const data = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ username: u, password: p }) });
+    if (data.user.role !== 'PRESIDENT') throw new Error('This account does not have President access.');
+    session = { token: data.token, user: data.user };
+    presidentStatus.textContent = '';
+    loginStep.classList.add('hidden');
+    manageStep.classList.remove('hidden');
+    await refreshExecList();
+  } catch (err) {
+    presidentStatus.textContent = err.message;
+  } finally {
+    presidentSubmit.classList.remove('pulsing');
+  }
+});
+
+async function refreshExecList() {
+  const list = document.getElementById('exec-list');
+  try {
+    const execs = await api('/api/executives');
+    list.innerHTML = execs.map(x => `<div class="exec-row"><span class="name">${x.displayName}</span><span class="desig">${x.designation} · ${x.role}</span></div>`).join('');
+  } catch (err) {
+    list.innerHTML = `<p class="form-status">${err.message}</p>`;
+  }
+}
+
+const createExecForm = document.getElementById('create-exec-form');
+const createExecStatus = document.getElementById('create-exec-status');
+const createExecSubmit = document.getElementById('create-exec-submit');
+createExecForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('e-username').value.trim();
+  const designation = document.getElementById('e-designation').value.trim();
+  const password = document.getElementById('e-password').value;
+  createExecSubmit.classList.add('pulsing'); createExecStatus.textContent = 'Creating…';
+  try {
+    await api('/api/executives', { method: 'POST', body: JSON.stringify({ username, designation, password }) });
+    createExecStatus.textContent = `Created "${username}". Share the credentials with them directly.`;
+    createExecForm.reset();
+    await refreshExecList();
+  } catch (err) {
+    createExecStatus.textContent = err.message;
+  } finally {
+    createExecSubmit.classList.remove('pulsing');
+  }
+});
+
+// =========================================================================
+// Dashboard
+// =========================================================================
+function enterDashboard() {
+  document.getElementById('landing-header').classList.add('hidden');
+  document.getElementById('landing-main').classList.add('hidden');
+  document.getElementById('landing-footer').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+
+  document.getElementById('dash-user-name').textContent = session.user.displayName;
+  document.getElementById('dash-user-desig').textContent = session.user.designation || session.user.role;
+  document.getElementById('dash-user-avatar').src = session.user.avatarUrl || placeholderAvatar();
+
+  connectSocket();
+  loadProfile();
+  loadTodos();
+  loadDirectoryAndConversations();
+  loadMeetings();
+}
+
+function placeholderAvatar() {
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#15171B"/><circle cx="60" cy="46" r="22" fill="#2a2d33"/><rect x="20" y="76" width="80" height="34" rx="17" fill="#2a2d33"/></svg>'
+  );
+}
+
+document.querySelectorAll('.dash-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.dash-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+document.getElementById('sign-out').addEventListener('click', () => {
+  if (socket) socket.disconnect();
+  session = { token: null, user: null };
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('landing-header').classList.remove('hidden');
+  document.getElementById('landing-main').classList.remove('hidden');
+  document.getElementById('landing-footer').classList.remove('hidden');
+});
+
+function connectSocket() {
+  socket = io({ auth: { token: session.token } });
+
+  socket.on('message:new', (message) => {
+    if (message.conversationId === activeConversationId) {
+      appendBubble(message);
+      socket.emit('message:read', { messageId: message.id, conversationId: message.conversationId });
+    } else if (message.senderId !== session.user.id) {
+      beep(660, 110, 0.05);
+    }
+    refreshConvoList();
+  });
+  socket.on('message:delivered', ({ messageId }) => setTick(messageId, 'delivered'));
+  socket.on('message:read', ({ messageId }) => setTick(messageId, 'read'));
+  socket.on('typing:update', ({ conversationId, typing }) => {
+    if (conversationId !== activeConversationId) return;
+    document.getElementById('typing-note').textContent = typing ? 'Typing…' : '';
+  });
+
+  socket.on('call:incoming', ({ fromUserId, conversationId }) => showIncomingCall(fromUserId, conversationId));
+  socket.on('call:accepted', ({ fromUserId }) => onCallAccepted(fromUserId));
+  socket.on('call:rejected', () => { closeCallUI(); alert('Call declined.'); });
+  socket.on('call:signal', ({ fromUserId, data }) => onCallSignal(fromUserId, data));
+  socket.on('call:ended', () => closeCallUI());
+
+  socket.on('meeting:peer-joined', ({ userId }) => onMeetingPeerJoined(userId, true));
+  socket.on('meeting:signal', ({ fromUserId, data }) => onMeetingSignal(fromUserId, data));
+  socket.on('meeting:peer-left', ({ userId }) => onMeetingPeerLeft(userId));
+}
+
+// ---------- Profile ----------
+async function loadProfile() {
+  const p = await api('/api/profile/me');
+  document.getElementById('profile-avatar-preview').src = p.avatarUrl || placeholderAvatar();
+  document.getElementById('profile-bio').value = p.bio || '';
+  window.__socialLinks = Array.isArray(p.socialLinks) ? p.socialLinks : [];
+  renderSocialLinks();
+}
+function renderSocialLinks() {
+  const list = document.getElementById('social-links-list');
+  list.innerHTML = window.__socialLinks.map((l, i) => `
+    <div class="social-row"><input value="${l.platform}" disabled /><input value="${l.url}" disabled />
+    <button class="btn small danger" type="button" data-i="${i}">Remove</button></div>
+  `).join('');
+  list.querySelectorAll('button[data-i]').forEach(btn => btn.addEventListener('click', () => {
+    window.__socialLinks.splice(Number(btn.dataset.i), 1); renderSocialLinks();
+  }));
+}
+document.getElementById('add-social').addEventListener('click', () => {
+  const platform = document.getElementById('social-platform').value.trim();
+  const url = document.getElementById('social-url').value.trim();
+  if (!platform || !url) return;
+  window.__socialLinks.push({ platform, url });
+  document.getElementById('social-platform').value = '';
+  document.getElementById('social-url').value = '';
+  renderSocialLinks();
+});
+document.getElementById('avatar-btn').addEventListener('click', () => document.getElementById('avatar-input').click());
+document.getElementById('avatar-input').addEventListener('change', (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { document.getElementById('profile-avatar-preview').src = reader.result; window.__pendingAvatar = reader.result; };
+  reader.readAsDataURL(file);
+});
+document.getElementById('save-profile').addEventListener('click', async () => {
+  const status = document.getElementById('profile-status');
+  status.textContent = 'Saving…';
+  try {
+    const body = { bio: document.getElementById('profile-bio').value, socialLinks: window.__socialLinks };
+    if (window.__pendingAvatar) body.avatarUrl = window.__pendingAvatar;
+    const updated = await api('/api/profile/me', { method: 'PATCH', body: JSON.stringify(body) });
+    session.user.avatarUrl = updated.avatarUrl;
+    document.getElementById('dash-user-avatar').src = updated.avatarUrl || placeholderAvatar();
+    status.textContent = 'Saved.';
+  } catch (err) { status.textContent = err.message; }
+});
+
+// ---------- To-Do ----------
+async function loadTodos() {
+  const todos = await api('/api/todos');
+  renderTodos(todos);
+}
+function renderTodos(todos) {
+  const list = document.getElementById('todo-list');
+  list.innerHTML = todos.map(t => `
+    <div class="todo-row ${t.done ? 'done' : ''}" data-id="${t.id}">
+      <input type="checkbox" ${t.done ? 'checked' : ''} />
+      <span class="content">${t.content}</span>
+      <button data-del>Remove</button>
+    </div>`).join('');
+  list.querySelectorAll('.todo-row').forEach(row => {
+    const id = row.dataset.id;
+    row.querySelector('input[type=checkbox]').addEventListener('change', async (e) => {
+      await api('/api/todos/' + id, { method: 'PATCH', body: JSON.stringify({ done: e.target.checked }) });
+      row.classList.toggle('done', e.target.checked);
+    });
+    row.querySelector('[data-del]').addEventListener('click', async () => {
+      await api('/api/todos/' + id, { method: 'DELETE' });
+      row.remove();
+    });
+  });
+}
+document.getElementById('todo-add-btn').addEventListener('click', addTodo);
+document.getElementById('todo-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
+async function addTodo() {
+  const input = document.getElementById('todo-input');
+  const content = input.value.trim();
+  if (!content) return;
+  input.value = '';
+  await api('/api/todos', { method: 'POST', body: JSON.stringify({ content }) });
+  loadTodos();
+}
+
+// ---------- Messages ----------
+let directory = [];
+let conversations = [];
+let activeConversationId = null;
+let activeConversation = null;
+
+async function loadDirectoryAndConversations() {
+  directory = await api('/api/executives');
+  await refreshConvoList();
+  renderContactList();
+}
+async function refreshConvoList() {
+  conversations = await api('/api/conversations');
+  renderConvoList();
+}
+function otherParticipant(convo) {
+  const p = convo.participants.find(p => p.userId !== session.user.id);
+  return p ? p.user : null;
+}
+function renderConvoList() {
+  const list = document.getElementById('convo-list');
+  list.innerHTML = conversations.map(c => {
+    const label = c.isGroup ? (c.title || 'Group') : (otherParticipant(c)?.displayName || 'Unknown');
+    const last = c.messages && c.messages[0] ? c.messages[0].body : 'No messages yet';
+    return `<div class="msg-convo ${c.id === activeConversationId ? 'active' : ''}" data-id="${c.id}">
+      <div><div class="msg-name">${label}</div><div class="msg-sub">${last}</div></div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.msg-convo').forEach(el => el.addEventListener('click', () => openConversation(el.dataset.id)));
+}
+function renderContactList() {
+  const list = document.getElementById('contact-list');
+  list.innerHTML = directory.filter(x => x.id !== session.user.id).map(x => `
+    <div class="msg-contact" data-id="${x.id}">
+      <div><div class="msg-name">${x.displayName}</div><div class="msg-sub">${x.designation}</div></div>
+    </div>`).join('');
+  list.querySelectorAll('.msg-contact').forEach(el => el.addEventListener('click', async () => {
+    const convo = await api('/api/conversations/direct', { method: 'POST', body: JSON.stringify({ otherUserId: el.dataset.id }) });
+    await refreshConvoList();
+    openConversation(convo.id);
+  }));
+}
+
+async function openConversation(id) {
+  if (activeConversationId) socket.emit('conversation:leave', { conversationId: activeConversationId });
+  activeConversationId = id;
+  activeConversation = conversations.find(c => c.id === id) || (await api('/api/conversations')).find(c => c.id === id);
+  socket.emit('conversation:join', { conversationId: id });
+  renderConvoList();
+
+  const thread = document.getElementById('msg-thread');
+  const other = activeConversation.isGroup ? null : otherParticipant(activeConversation);
+  const title = activeConversation.isGroup ? (activeConversation.title || 'Group') : (other?.displayName || 'Conversation');
+
+  thread.innerHTML = `
+    <div class="msg-thread-head">
+      <span style="font-family:var(--display)">${title}</span>
+      ${!activeConversation.isGroup ? '<button class="btn small" id="call-btn">Call</button>' : ''}
+    </div>
+    <div class="msg-scroll" id="msg-scroll"></div>
+    <div class="typing-note" id="typing-note"></div>
+    <div class="msg-input-row"><input type="text" id="msg-input" placeholder="Type a message…" /><button class="btn solid small" id="msg-send">Send</button></div>
+  `;
+
+  const messages = await api('/api/conversations/' + id + '/messages');
+  const scroll = document.getElementById('msg-scroll');
+  scroll.innerHTML = '';
+  messages.forEach(appendBubble);
+  messages.forEach(m => { if (m.senderId !== session.user.id) socket.emit('message:read', { messageId: m.id, conversationId: id }); });
+
+  document.getElementById('msg-send').addEventListener('click', sendActiveMessage);
+  const input = document.getElementById('msg-input');
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendActiveMessage(); else socket.emit('typing:start', { conversationId: id }); });
+  input.addEventListener('blur', () => socket.emit('typing:stop', { conversationId: id }));
+
+  if (!activeConversation.isGroup && other) {
+    document.getElementById('call-btn').addEventListener('click', () => startCall(other.id, other.displayName, id));
+  }
+}
+
+function sendActiveMessage() {
+  const input = document.getElementById('msg-input');
+  const body = input.value.trim();
+  if (!body || !activeConversationId) return;
+  socket.emit('message:send', { conversationId: activeConversationId, body }, (ack) => {
+    if (!ack.ok) alert(ack.error);
+  });
+  input.value = '';
+  socket.emit('typing:stop', { conversationId: activeConversationId });
+}
+
+function appendBubble(message) {
+  const scroll = document.getElementById('msg-scroll');
+  if (!scroll) return;
+  const mine = message.senderId === session.user.id;
+  const div = document.createElement('div');
+  div.className = 'bubble ' + (mine ? 'mine' : 'theirs');
+  div.dataset.id = message.id;
+  const senderLabel = !mine && activeConversation && activeConversation.isGroup ? (message.sender?.displayName + ': ') : '';
+  div.innerHTML = `${senderLabel}${escapeHtml(message.body)}<span class="meta">${new Date(message.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}${mine ? ' <span class="tick sent" data-tick>✓</span>' : ''}</span>`;
+  scroll.appendChild(div);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+function setTick(messageId, state) {
+  const bubble = document.querySelector(`.bubble[data-id="${messageId}"] [data-tick]`);
+  if (!bubble) return;
+  if (state === 'delivered') { bubble.textContent = '✓✓'; bubble.classList.remove('read'); }
+  if (state === 'read') { bubble.textContent = '✓✓'; bubble.classList.add('read'); }
+}
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ---------- 1:1 Calls (WebRTC) ----------
+let activeCall = null; // { pc, remoteUserId, conversationId, localStream, iceQueue }
+
+function newPeerConnection(onIce, onTrack) {
+  const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  pc.onicecandidate = (e) => { if (e.candidate) onIce(e.candidate); };
+  pc.ontrack = (e) => onTrack(e.streams[0]);
+  return pc;
+}
+
+async function startCall(toUserId, toName, conversationId) {
+  const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+  document.getElementById('call-local-video').srcObject = localStream;
+  document.getElementById('call-remote-label').textContent = toName;
+  document.getElementById('call-status-text').textContent = 'Calling ' + toName + '…';
+  document.getElementById('call-overlay').classList.remove('hidden');
+
+  const pc = newPeerConnection(
+    (candidate) => socket.emit('call:signal', { toUserId, data: { candidate } }),
+    (stream) => { document.getElementById('call-remote-video').srcObject = stream; document.getElementById('call-status-text').textContent = 'Connected'; }
+  );
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  activeCall = { pc, remoteUserId: toUserId, conversationId, localStream };
+  socket.emit('call:invite', { toUserId, conversationId });
+}
+
+function showIncomingCall(fromUserId, conversationId) {
+  const contact = directory.find(d => d.id === fromUserId);
+  document.getElementById('incoming-call-name').textContent = (contact?.displayName || 'Someone') + ' is calling';
+  document.getElementById('incoming-call-banner').classList.remove('hidden');
+  beep(500, 150, 0.06);
+  document.getElementById('accept-call').onclick = async () => {
+    document.getElementById('incoming-call-banner').classList.add('hidden');
+    const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    document.getElementById('call-local-video').srcObject = localStream;
+    document.getElementById('call-remote-label').textContent = contact?.displayName || 'Connecting…';
+    document.getElementById('call-status-text').textContent = 'Connecting…';
+    document.getElementById('call-overlay').classList.remove('hidden');
+    const pc = newPeerConnection(
+      (candidate) => socket.emit('call:signal', { toUserId: fromUserId, data: { candidate } }),
+      (stream) => { document.getElementById('call-remote-video').srcObject = stream; document.getElementById('call-status-text').textContent = 'Connected'; }
+    );
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    activeCall = { pc, remoteUserId: fromUserId, conversationId, localStream };
+    socket.emit('call:accept', { toUserId: fromUserId, conversationId });
+  };
+  document.getElementById('decline-call').onclick = () => {
+    document.getElementById('incoming-call-banner').classList.add('hidden');
+    socket.emit('call:reject', { toUserId: fromUserId, conversationId });
+  };
+}
+
+async function onCallAccepted(fromUserId) {
+  if (!activeCall || activeCall.remoteUserId !== fromUserId) return;
+  const offer = await activeCall.pc.createOffer();
+  await activeCall.pc.setLocalDescription(offer);
+  socket.emit('call:signal', { toUserId: fromUserId, data: { sdp: offer } });
+}
+
+async function onCallSignal(fromUserId, data) {
+  if (!activeCall || activeCall.remoteUserId !== fromUserId) return;
+  const pc = activeCall.pc;
+  if (data.sdp) {
+    await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    if (data.sdp.type === 'offer') {
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('call:signal', { toUserId: fromUserId, data: { sdp: answer } });
+    }
+  } else if (data.candidate) {
+    try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) {}
+  }
+}
+
+function closeCallUI() {
+  if (activeCall) {
+    activeCall.pc.close();
+    activeCall.localStream.getTracks().forEach(t => t.stop());
+  }
+  activeCall = null;
+  document.getElementById('call-overlay').classList.add('hidden');
+}
+document.getElementById('call-hangup').addEventListener('click', () => {
+  if (activeCall) socket.emit('call:end', { toUserId: activeCall.remoteUserId });
+  closeCallUI();
+});
+document.getElementById('call-mute').addEventListener('click', (e) => {
+  if (!activeCall) return;
+  const track = activeCall.localStream.getAudioTracks()[0];
+  track.enabled = !track.enabled;
+  e.target.textContent = track.enabled ? 'Mute' : 'Unmute';
+});
+
+// ---------- Meetings ----------
+async function loadMeetings() {
+  const hostArea = document.getElementById('meeting-host-area');
+  if (session.user.role === 'PRESIDENT') {
+    hostArea.innerHTML = `<div class="meeting-host-form"><input type="text" id="meeting-title" placeholder="Meeting title" /><button class="btn solid" id="host-meeting-btn" style="width:auto;padding:11px 22px;">Host meeting</button></div>`;
+    document.getElementById('host-meeting-btn').addEventListener('click', async () => {
+      const title = document.getElementById('meeting-title').value.trim();
+      if (!title) return;
+      const meeting = await api('/api/meetings', { method: 'POST', body: JSON.stringify({ title }) });
+      await enterMeetingRoom(meeting.id, title);
+      loadMeetings();
+    });
+  } else {
+    hostArea.innerHTML = `<p class="president-note" style="margin:0 0 20px">Only the President can host a meeting. You can join a live meeting below.</p>`;
+  }
+
+  const meetings = await api('/api/meetings');
+  const list = document.getElementById('meeting-list');
+  list.innerHTML = meetings.map(m => `
+    <div class="meeting-row" data-id="${m.id}" data-title="${m.title}">
+      <div class="meeting-info"><div class="t">${m.title}</div><div class="m">Hosted by ${m.host.displayName} · ${m.participantCount}/${m.maxParticipants} participants</div></div>
+      <button class="btn small join-meeting-btn" ${m.participantCount >= m.maxParticipants ? 'disabled' : ''}>${m.participantCount >= m.maxParticipants ? 'Full' : 'Join'}</button>
+    </div>`).join('') || '<p class="president-note" style="margin:0">No live meetings right now.</p>';
+
+  list.querySelectorAll('.join-meeting-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const row = e.target.closest('.meeting-row');
+      try {
+        await api('/api/meetings/' + row.dataset.id + '/join', { method: 'POST' });
+        await enterMeetingRoom(row.dataset.id, row.dataset.title);
+      } catch (err) { alert(err.message); }
+    });
+  });
+}
+
+let activeMeeting = null; // { id, localStream, peers: Map(userId -> { pc, stream }) }
+
+async function enterMeetingRoom(meetingId, title) {
+  const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+  activeMeeting = { id: meetingId, localStream, peers: new Map() };
+
+  document.getElementById('room-title-text').textContent = title;
+  document.getElementById('meeting-room').classList.remove('hidden');
+  renderMeetingTiles();
+
+  socket.emit('meeting:join', { meetingId }, (ack) => {
+    if (!ack.ok) { alert(ack.error); leaveMeeting(); return; }
+    ack.peers.forEach(peerUserId => connectToMeetingPeer(peerUserId, true));
+    updateRoomCount();
+  });
+}
+
+function connectToMeetingPeer(peerUserId, isInitiator) {
+  const pc = newPeerConnection(
+    (candidate) => socket.emit('meeting:signal', { meetingId: activeMeeting.id, toUserId: peerUserId, data: { candidate } }),
+    (stream) => { const p = activeMeeting.peers.get(peerUserId); if (p) { p.stream = stream; renderMeetingTiles(); } }
+  );
+  activeMeeting.localStream.getTracks().forEach(t => pc.addTrack(t, activeMeeting.localStream));
+  activeMeeting.peers.set(peerUserId, { pc, stream: null });
+
+  if (isInitiator) {
+    pc.createOffer().then(offer => pc.setLocalDescription(offer).then(() =>
+      socket.emit('meeting:signal', { meetingId: activeMeeting.id, toUserId: peerUserId, data: { sdp: offer } })
+    ));
+  }
+  renderMeetingTiles();
+}
+
+function onMeetingPeerJoined(userId) {
+  if (!activeMeeting || activeMeeting.peers.has(userId)) return;
+  connectToMeetingPeer(userId, false); // they will send us the offer
+  updateRoomCount();
+}
+
+async function onMeetingSignal(fromUserId, data) {
+  if (!activeMeeting) return;
+  let peer = activeMeeting.peers.get(fromUserId);
+  if (!peer) { connectToMeetingPeer(fromUserId, false); peer = activeMeeting.peers.get(fromUserId); }
+  const pc = peer.pc;
+  if (data.sdp) {
+    await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    if (data.sdp.type === 'offer') {
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('meeting:signal', { meetingId: activeMeeting.id, toUserId: fromUserId, data: { sdp: answer } });
+    }
+  } else if (data.candidate) {
+    try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) {}
+  }
+}
+
+function onMeetingPeerLeft(userId) {
+  if (!activeMeeting) return;
+  const peer = activeMeeting.peers.get(userId);
+  if (peer) { peer.pc.close(); activeMeeting.peers.delete(userId); }
+  renderMeetingTiles();
+  updateRoomCount();
+}
+
+function renderMeetingTiles() {
+  const grid = document.getElementById('room-tile-grid');
+  if (!activeMeeting) { grid.innerHTML = ''; return; }
+  let html = `<div class="tile"><video autoplay muted playsinline id="room-local-video"></video><span class="label">You</span></div>`;
+  activeMeeting.peers.forEach((peer, userId) => {
+    const name = (directory.find(d => d.id === userId) || {}).displayName || 'Participant';
+    html += `<div class="tile"><video autoplay playsinline id="room-video-${userId}"></video><span class="label">${name}</span></div>`;
+  });
+  grid.innerHTML = html;
+  document.getElementById('room-local-video').srcObject = activeMeeting.localStream;
+  activeMeeting.peers.forEach((peer, userId) => {
+    const v = document.getElementById('room-video-' + userId);
+    if (v && peer.stream) v.srcObject = peer.stream;
+  });
+}
+function updateRoomCount() {
+  if (!activeMeeting) return;
+  document.getElementById('room-count-text').textContent = (activeMeeting.peers.size + 1) + '/10 participants';
+}
+
+async function leaveMeeting() {
+  if (!activeMeeting) return;
+  socket.emit('meeting:leave', { meetingId: activeMeeting.id });
+  try { await api('/api/meetings/' + activeMeeting.id + '/leave', { method: 'POST' }); } catch (e) {}
+  activeMeeting.peers.forEach(p => p.pc.close());
+  activeMeeting.localStream.getTracks().forEach(t => t.stop());
+  activeMeeting = null;
+  document.getElementById('meeting-room').classList.add('hidden');
+  loadMeetings();
+}
+document.getElementById('room-leave').addEventListener('click', leaveMeeting);
+document.getElementById('room-mute').addEventListener('click', (e) => {
+  if (!activeMeeting) return;
+  const track = activeMeeting.localStream.getAudioTracks()[0];
+  track.enabled = !track.enabled;
+  e.target.textContent = track.enabled ? 'Mute' : 'Unmute';
+});
+</script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</body>
+</html>
