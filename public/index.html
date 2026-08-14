@@ -139,6 +139,11 @@
   .field input, .field textarea, .field select { width: 100%; border: none; border-bottom: 1px solid var(--line); background: transparent; font-family: var(--body); font-size: 1rem; padding: 8px 2px; color: var(--platinum); outline: none; transition: border-color 0.25s ease; resize: vertical; }
   .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--gold); }
 
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-right: 50px; }
+  .pw-toggle { position: absolute; right: 0; bottom: 9px; background: none; border: none; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); cursor: none; padding: 2px 0 2px 8px; }
+  .pw-toggle:hover { color: var(--gold-bright); }
+
   .panel .btn.solid { width: 100%; padding: 14px; font-size: 0.94rem; margin-top: 4px; position: relative; overflow: hidden; }
   .submit-ring { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; border: 1px solid rgba(22,19,12,0.5); transform: scale(0); opacity: 0; }
   .btn.solid.pulsing .submit-ring { animation: submit-pulse 0.7s ease-out forwards; }
@@ -310,7 +315,7 @@
     <h2 class="panel-title">Sign in</h2>
     <form id="auth-form">
       <div class="field"><label for="username">Username</label><input id="username" type="text" autocomplete="username" required /></div>
-      <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required /></div>
+      <div class="field"><label for="password">Password</label><div class="pw-wrap"><input id="password" type="password" autocomplete="current-password" required /><button type="button" class="pw-toggle" data-target="password" tabindex="-1">Show</button></div></div>
       <p class="form-status" id="form-status"></p>
       <button type="submit" class="btn solid" id="submit-btn"><span class="submit-ring"></span><span class="label">Enter channel</span></button>
     </form>
@@ -332,7 +337,7 @@
 
     <form id="president-form">
       <div class="field"><label for="p-username">Username</label><input id="p-username" type="text" autocomplete="username" required /></div>
-      <div class="field"><label for="p-password">Password</label><input id="p-password" type="password" autocomplete="current-password" required /></div>
+      <div class="field"><label for="p-password">Password</label><div class="pw-wrap"><input id="p-password" type="password" autocomplete="current-password" required /><button type="button" class="pw-toggle" data-target="p-password" tabindex="-1">Show</button></div></div>
       <p class="form-status" id="president-status"></p>
       <button type="submit" class="btn solid" id="president-submit"><span class="submit-ring"></span><span class="label">Authenticate</span></button>
     </form>
@@ -390,6 +395,8 @@
           <button class="btn solid" id="save-profile" style="width:auto;padding:11px 26px;"><span class="label">Save profile</span></button>
         </div>
       </div>
+
+      <div class="exec-list" id="password-section"></div>
     </div>
 
     <!-- To-Do -->
@@ -428,11 +435,17 @@
       <form id="dash-create-exec-form" class="meeting-host-form" style="flex-wrap:wrap;row-gap:10px;">
         <input type="text" id="dx-username" placeholder="Username" required style="flex:1;min-width:130px;" />
         <input type="text" id="dx-designation" placeholder="Designation" required style="flex:1;min-width:170px;" />
-        <input type="password" id="dx-password" placeholder="Password" required style="flex:1;min-width:130px;" />
+        <span class="pw-wrap" style="flex:1;min-width:130px;"><input type="password" id="dx-password" placeholder="Password" required style="width:100%;" /><button type="button" class="pw-toggle" data-target="dx-password" tabindex="-1" style="bottom:11px;">Show</button></span>
         <button class="btn solid" type="submit" style="width:auto;padding:11px 22px;">Add executive</button>
       </form>
       <p class="form-status" id="dash-create-exec-status"></p>
       <div class="exec-list" id="dash-exec-list"></div>
+
+      <div class="exec-list" id="password-requests-section">
+        <h3 style="font-family:var(--display);font-size:1.05rem;font-weight:600;margin:0 0 6px;">Password change requests</h3>
+        <p class="president-note" style="margin:0 0 18px;">Executives cannot change their own password directly. When they request a new one below, approve it to set that password permanently, or deny it.</p>
+        <div id="password-requests-list"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -471,7 +484,6 @@
 </div>
 
 <script>
-const API_BASE = ''; // same origin as the page — works both locally and once hosted online
 const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
 
 // ---------- Signal-pulse cursor ----------
@@ -605,19 +617,346 @@ const chObserver = new IntersectionObserver((entries) => {
 channels.forEach(c => chObserver.observe(c));
 
 // =========================================================================
-// Session state
+// Local data store — everything lives in this browser (localStorage).
+// There is no backend server: all "API" calls below read/write a single
+// JSON blob in localStorage, so accounts, passwords, messages, etc. persist
+// across reloads on this device/browser only.
 // =========================================================================
-let session = { token: null, user: null };
+const DB_KEY = 'deml_channel_db_v1';
+const MAX_MEETING_PARTICIPANTS = 10;
+
+function readDB() {
+  let db = null;
+  try { db = JSON.parse(localStorage.getItem(DB_KEY)); } catch (e) { db = null; }
+  if (!db || !db.users || !db.users.length) {
+    db = {
+      users: [{
+        id: 'u_president',
+        username: 'president',
+        password: '4254224524NASA$', // permanent default — only the President can change this, from Profile
+        role: 'PRESIDENT',
+        designation: 'President',
+        displayName: 'President',
+        avatarUrl: '',
+        bio: '',
+        socialLinks: []
+      }],
+      todos: {},
+      conversations: [],
+      messages: [],
+      meetings: [],
+      passwordRequests: []
+    };
+    writeDB(db);
+  }
+  db.todos = db.todos || {};
+  db.conversations = db.conversations || [];
+  db.messages = db.messages || [];
+  db.meetings = db.meetings || [];
+  db.passwordRequests = db.passwordRequests || [];
+  return db;
+}
+function writeDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+function uid(prefix) { return (prefix || 'id') + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
+function publicUser(u) {
+  if (!u) return null;
+  return { id: u.id, username: u.username, role: u.role, designation: u.designation, displayName: u.displayName, avatarUrl: u.avatarUrl };
+}
+
+// ---------- Auth ----------
+function dbLogin(username, password) {
+  const db = readDB();
+  const user = db.users.find(u => u.username.toLowerCase() === String(username || '').toLowerCase().trim());
+  if (!user || user.password !== password) throw new Error('Invalid username or password.');
+  return user;
+}
+
+// ---------- Executives ----------
+function dbGetExecutives() { return readDB().users.map(publicUser); }
+function dbCreateExecutive({ username, designation, password }) {
+  const db = readDB();
+  username = (username || '').trim(); designation = (designation || '').trim();
+  if (!username || !designation || !password) throw new Error('All fields are required.');
+  if (db.users.some(u => u.username.toLowerCase() === username.toLowerCase())) throw new Error('That username is already taken.');
+  const user = { id: uid('u'), username, password, role: 'EXEC', designation, displayName: username, avatarUrl: '', bio: '', socialLinks: [] };
+  db.users.push(user);
+  writeDB(db);
+  return publicUser(user);
+}
+function dbRemoveExecutive(id) {
+  const db = readDB();
+  const user = db.users.find(u => u.id === id);
+  if (!user) throw new Error('Executive not found.');
+  if (user.role === 'PRESIDENT') throw new Error('The President account cannot be removed.');
+  db.users = db.users.filter(u => u.id !== id);
+  db.passwordRequests = db.passwordRequests.filter(r => r.userId !== id);
+  db.conversations.forEach(c => { c.participantIds = c.participantIds.filter(pid => pid !== id); });
+  db.meetings.forEach(m => { m.participantIds = m.participantIds.filter(pid => pid !== id); });
+  writeDB(db);
+}
+
+// ---------- Profile ----------
+function dbGetProfile(userId) {
+  const u = readDB().users.find(x => x.id === userId);
+  if (!u) throw new Error('User not found.');
+  return { bio: u.bio || '', avatarUrl: u.avatarUrl || '', socialLinks: u.socialLinks || [] };
+}
+function dbUpdateProfile(userId, patch) {
+  const db = readDB();
+  const u = db.users.find(x => x.id === userId);
+  if (!u) throw new Error('User not found.');
+  if (patch.bio !== undefined) u.bio = patch.bio;
+  if (patch.socialLinks !== undefined) u.socialLinks = patch.socialLinks;
+  if (patch.avatarUrl !== undefined) u.avatarUrl = patch.avatarUrl;
+  writeDB(db);
+  return { avatarUrl: u.avatarUrl };
+}
+
+// ---------- Passwords ----------
+// The President's password (and every executive's password) is permanent —
+// it never expires and never changes on its own. The President can update
+// their own password from Profile at any time. Executives cannot edit their
+// password directly; they submit a request the President must approve
+// (which sets it permanently) or deny. Every request is stored.
+function dbChangeOwnPassword(userId, currentPassword, newPassword) {
+  const db = readDB();
+  const u = db.users.find(x => x.id === userId);
+  if (!u) throw new Error('User not found.');
+  if (u.role !== 'PRESIDENT') throw new Error('Only the President can change a password directly. Submit a request instead.');
+  if (u.password !== currentPassword) throw new Error('Current password is incorrect.');
+  if (!newPassword || newPassword.length < 4) throw new Error('New password must be at least 4 characters.');
+  u.password = newPassword;
+  writeDB(db);
+}
+function dbRequestPasswordChange(userId, newPassword, note) {
+  const db = readDB();
+  const u = db.users.find(x => x.id === userId);
+  if (!u) throw new Error('User not found.');
+  if (!newPassword || newPassword.length < 4) throw new Error('New password must be at least 4 characters.');
+  if (db.passwordRequests.some(r => r.userId === userId && r.status === 'pending')) throw new Error('You already have a pending request.');
+  const req = { id: uid('pr'), userId, newPassword, note: (note || '').trim(), status: 'pending', createdAt: Date.now(), resolvedAt: null };
+  db.passwordRequests.push(req);
+  writeDB(db);
+  return req;
+}
+function dbGetPasswordRequests() {
+  const db = readDB();
+  return db.passwordRequests.slice().sort((a, b) => b.createdAt - a.createdAt)
+    .map(r => Object.assign({}, r, { user: publicUser(db.users.find(u => u.id === r.userId)) }));
+}
+function dbGetMyPasswordRequests(userId) { return dbGetPasswordRequests().filter(r => r.userId === userId); }
+function dbResolvePasswordRequest(requestId, action) {
+  const db = readDB();
+  const req = db.passwordRequests.find(r => r.id === requestId);
+  if (!req) throw new Error('Request not found.');
+  if (req.status !== 'pending') throw new Error('This request was already resolved.');
+  if (action === 'approve') {
+    const u = db.users.find(x => x.id === req.userId);
+    if (!u) throw new Error('User not found.');
+    u.password = req.newPassword; // permanent, until the President or another approved request changes it again
+    req.status = 'approved';
+  } else {
+    req.status = 'denied';
+  }
+  req.resolvedAt = Date.now();
+  writeDB(db);
+  return req;
+}
+
+// ---------- To-Do ----------
+function dbGetTodos(userId) { return (readDB().todos[userId] || []).slice(); }
+function dbAddTodo(userId, content) {
+  const db = readDB();
+  db.todos[userId] = db.todos[userId] || [];
+  const todo = { id: uid('t'), content, done: false };
+  db.todos[userId].push(todo);
+  writeDB(db);
+  return todo;
+}
+function dbUpdateTodo(userId, id, patch) {
+  const db = readDB();
+  const t = (db.todos[userId] || []).find(x => x.id === id);
+  if (!t) throw new Error('Task not found.');
+  Object.assign(t, patch);
+  writeDB(db);
+  return t;
+}
+function dbDeleteTodo(userId, id) {
+  const db = readDB();
+  db.todos[userId] = (db.todos[userId] || []).filter(x => x.id !== id);
+  writeDB(db);
+}
+
+// ---------- Conversations & messages ----------
+function decorateConversation(db, c, userId) {
+  const msgs = db.messages.filter(m => m.conversationId === c.id).sort((a, b) => b.createdAt - a.createdAt);
+  return {
+    id: c.id, isGroup: !!c.isGroup, title: c.title || '',
+    participants: c.participantIds.map(pid => ({ userId: pid, user: publicUser(db.users.find(u => u.id === pid)) })),
+    messages: msgs.slice(0, 1)
+  };
+}
+function dbGetConversations(userId) {
+  const db = readDB();
+  return db.conversations.filter(c => c.participantIds.includes(userId)).map(c => decorateConversation(db, c, userId));
+}
+function dbCreateDirectConversation(userId, otherUserId) {
+  const db = readDB();
+  let convo = db.conversations.find(c => !c.isGroup && c.participantIds.length === 2 && c.participantIds.includes(userId) && c.participantIds.includes(otherUserId));
+  if (!convo) {
+    convo = { id: uid('c'), isGroup: false, title: '', participantIds: [userId, otherUserId], createdAt: Date.now() };
+    db.conversations.push(convo);
+    writeDB(db);
+  }
+  return decorateConversation(db, convo, userId);
+}
+function dbGetMessages(conversationId) {
+  const db = readDB();
+  return db.messages.filter(m => m.conversationId === conversationId).sort((a, b) => a.createdAt - b.createdAt)
+    .map(m => Object.assign({}, m, { sender: publicUser(db.users.find(u => u.id === m.senderId)) }));
+}
+function dbSendMessage(conversationId, senderId, body) {
+  const db = readDB();
+  const convo = db.conversations.find(c => c.id === conversationId);
+  if (!convo || !convo.participantIds.includes(senderId)) throw new Error('Conversation not found.');
+  const message = { id: uid('m'), conversationId, senderId, body, createdAt: Date.now(), readBy: [senderId] };
+  db.messages.push(message);
+  writeDB(db);
+  return Object.assign({}, message, { sender: publicUser(db.users.find(u => u.id === senderId)) });
+}
+function dbMarkRead(conversationId, messageId, userId) {
+  const db = readDB();
+  const m = db.messages.find(x => x.id === messageId && x.conversationId === conversationId);
+  if (m && !m.readBy.includes(userId)) { m.readBy.push(userId); writeDB(db); }
+  return m;
+}
+
+// ---------- Meetings ----------
+function dbGetMeetings() {
+  const db = readDB();
+  return db.meetings.map(m => ({ id: m.id, title: m.title, host: publicUser(db.users.find(u => u.id === m.hostId)), participantCount: m.participantIds.length, maxParticipants: MAX_MEETING_PARTICIPANTS }));
+}
+function dbHostMeeting(hostId, title) {
+  const db = readDB();
+  const meeting = { id: uid('mt'), title, hostId, participantIds: [hostId], createdAt: Date.now() };
+  db.meetings.push(meeting);
+  writeDB(db);
+  return { id: meeting.id, title: meeting.title };
+}
+function dbJoinMeeting(meetingId, userId) {
+  const db = readDB();
+  const meeting = db.meetings.find(m => m.id === meetingId);
+  if (!meeting) throw new Error('Meeting not found.');
+  if (!meeting.participantIds.includes(userId)) {
+    if (meeting.participantIds.length >= MAX_MEETING_PARTICIPANTS) throw new Error('This meeting is full.');
+    meeting.participantIds.push(userId);
+    writeDB(db);
+  }
+  return meeting.participantIds.filter(id => id !== userId);
+}
+function dbLeaveMeeting(meetingId, userId) {
+  const db = readDB();
+  const meeting = db.meetings.find(m => m.id === meetingId);
+  if (!meeting) return;
+  meeting.participantIds = meeting.participantIds.filter(id => id !== userId);
+  if (meeting.participantIds.length === 0) db.meetings = db.meetings.filter(m => m.id !== meetingId);
+  writeDB(db);
+}
+
+// =========================================================================
+// Local realtime — mimics the socket.io interface (on/emit) this app was
+// built around, but delivers events via BroadcastChannel to other tabs of
+// this same browser. Open the app in two tabs and sign in as two different
+// accounts to see messages, calls, and meetings update live between them.
+// =========================================================================
+function createLocalSocket(userId) {
+  let bc = null;
+  try { bc = new BroadcastChannel('deml_realtime_v1'); } catch (e) { bc = null; }
+  const handlers = {};
+  function on(event, fn) { (handlers[event] = handlers[event] || []).push(fn); }
+  function trigger(event, payload) { (handlers[event] || []).forEach(fn => fn(payload)); }
+  function post(event, payload, toUserId) { if (bc) bc.postMessage({ event, payload, to: toUserId || null, from: userId }); }
+
+  if (bc) {
+    bc.onmessage = (e) => {
+      const msg = e.data;
+      if (!msg || msg.from === userId) return;
+      if (msg.to && msg.to !== userId) return;
+      trigger(msg.event, msg.payload);
+    };
+  }
+
+  function emit(event, payload, ack) {
+    payload = payload || {};
+    switch (event) {
+      case 'typing:start':
+      case 'typing:stop': {
+        const convo = readDB().conversations.find(c => c.id === payload.conversationId);
+        if (convo) convo.participantIds.filter(id => id !== userId)
+          .forEach(pid => post('typing:update', { conversationId: payload.conversationId, typing: event === 'typing:start' }, pid));
+        break;
+      }
+      case 'conversation:join':
+      case 'conversation:leave':
+        break; // no rooms needed — messages are addressed directly to participants
+      case 'message:send': {
+        let message;
+        try { message = dbSendMessage(payload.conversationId, userId, payload.body); }
+        catch (err) { ack && ack({ ok: false, error: err.message }); return; }
+        ack && ack({ ok: true });
+        trigger('message:new', message);
+        trigger('message:delivered', { messageId: message.id });
+        const convo = readDB().conversations.find(c => c.id === payload.conversationId);
+        (convo ? convo.participantIds : []).filter(id => id !== userId).forEach(pid => post('message:new', message, pid));
+        break;
+      }
+      case 'message:read': {
+        const m = dbMarkRead(payload.conversationId, payload.messageId, userId);
+        if (m && m.senderId !== userId) post('message:read', { messageId: m.id }, m.senderId);
+        break;
+      }
+      case 'call:invite': post('call:incoming', { fromUserId: userId, conversationId: payload.conversationId }, payload.toUserId); break;
+      case 'call:accept': post('call:accepted', { fromUserId: userId }, payload.toUserId); break;
+      case 'call:reject': post('call:rejected', {}, payload.toUserId); break;
+      case 'call:signal': post('call:signal', { fromUserId: userId, data: payload.data }, payload.toUserId); break;
+      case 'call:end': post('call:ended', {}, payload.toUserId); break;
+      case 'meeting:join': {
+        let peers;
+        try { peers = dbJoinMeeting(payload.meetingId, userId); }
+        catch (err) { ack && ack({ ok: false, error: err.message }); return; }
+        ack && ack({ ok: true, peers });
+        peers.forEach(pid => post('meeting:peer-joined', { userId }, pid));
+        break;
+      }
+      case 'meeting:signal': post('meeting:signal', { fromUserId: userId, data: payload.data }, payload.toUserId); break;
+      case 'meeting:leave': {
+        const db = readDB();
+        const meeting = db.meetings.find(m => m.id === payload.meetingId);
+        const others = meeting ? meeting.participantIds.filter(id => id !== userId) : [];
+        dbLeaveMeeting(payload.meetingId, userId);
+        others.forEach(pid => post('meeting:peer-left', { userId }, pid));
+        break;
+      }
+    }
+  }
+
+  return { on, emit, disconnect() { if (bc) bc.close(); } };
+}
+
+// =========================================================================
+// Session state — kept in sessionStorage so a page refresh in this tab
+// stays signed in. Closing the tab or opening a new one starts fresh
+// (and different tabs can still hold different accounts for testing).
+// =========================================================================
+const SESSION_KEY = 'deml_session_user_id';
+let session = { user: null };
 let socket = null;
 
-function authHeaders() { return { Authorization: 'Bearer ' + session.token }; }
-async function api(path, opts) {
-  opts = opts || {};
-  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {}, session.token ? authHeaders() : {});
-  const res = await fetch(API_BASE + path, Object.assign({}, opts, { headers }));
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
+function persistSession(userId) {
+  try { sessionStorage.setItem(SESSION_KEY, userId); } catch (e) {}
+}
+function clearPersistedSession() {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
 }
 
 // ---------- Sign-in overlay wiring ----------
@@ -630,16 +969,19 @@ overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.cla
 const authForm = document.getElementById('auth-form');
 const formStatus = document.getElementById('form-status');
 const submitBtn = document.getElementById('submit-btn');
-authForm.addEventListener('submit', async (e) => {
+authForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
   if (!username || !password) { formStatus.textContent = 'Enter both fields to continue.'; return; }
   submitBtn.classList.add('pulsing'); formStatus.textContent = 'Verifying credentials…';
   try {
-    const data = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
-    session = { token: data.token, user: data.user };
+    const user = dbLogin(username, password);
+    session = { user };
+    persistSession(user.id);
+    formStatus.textContent = '';
     overlay.classList.remove('open');
+    authForm.reset();
     enterDashboard();
   } catch (err) {
     formStatus.textContent = err.message;
@@ -658,16 +1000,17 @@ const presidentForm = document.getElementById('president-form');
 const presidentStatus = document.getElementById('president-status');
 const presidentSubmit = document.getElementById('president-submit');
 
-presidentForm.addEventListener('submit', async (e) => {
+presidentForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const u = document.getElementById('p-username').value.trim();
   const p = document.getElementById('p-password').value;
   if (!u || !p) { presidentStatus.textContent = 'Enter both fields to continue.'; return; }
   presidentSubmit.classList.add('pulsing'); presidentStatus.textContent = 'Verifying President credentials…';
   try {
-    const data = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ username: u, password: p }) });
-    if (data.user.role !== 'PRESIDENT') throw new Error('This account does not have President access.');
-    session = { token: data.token, user: data.user };
+    const user = dbLogin(u, p);
+    if (user.role !== 'PRESIDENT') throw new Error('This account does not have President access.');
+    session = { user };
+    persistSession(user.id);
     presidentStatus.textContent = '';
     presidentOverlay.classList.remove('open');
     presidentForm.reset();
@@ -708,24 +1051,24 @@ function enterDashboard() {
 }
 
 // ---------- Manage Executives (President only) ----------
-async function loadExecManagement() {
+function loadExecManagement() {
   const list = document.getElementById('dash-exec-list');
   try {
-    const execs = await api('/api/executives');
+    const execs = dbGetExecutives();
     list.innerHTML = execs.map(x => `
       <div class="exec-row" data-id="${x.id}">
-        <span class="name">${x.displayName}</span>
-        <span class="desig">${x.designation} · ${x.role}</span>
+        <span class="name">${escapeHtml(x.displayName)}</span>
+        <span class="desig">${escapeHtml(x.designation)} · ${x.role}</span>
         ${x.role !== 'PRESIDENT' ? `<button class="btn small danger" data-remove="${x.id}" type="button" style="margin-left:12px;">Remove</button>` : ''}
       </div>`).join('');
     list.querySelectorAll('[data-remove]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         if (!confirm('Remove this executive? This cannot be undone.')) return;
         btn.disabled = true; btn.textContent = 'Removing…';
         try {
-          await api('/api/executives/' + btn.dataset.remove, { method: 'DELETE' });
-          await loadExecManagement();
-          await loadDirectoryAndConversations();
+          dbRemoveExecutive(btn.dataset.remove);
+          loadExecManagement();
+          loadDirectoryAndConversations();
         } catch (err) {
           alert(err.message);
           btn.disabled = false; btn.textContent = 'Remove';
@@ -735,26 +1078,67 @@ async function loadExecManagement() {
   } catch (err) {
     list.innerHTML = `<p class="form-status">${err.message}</p>`;
   }
+  renderPasswordRequests();
 }
 
 const dashCreateExecForm = document.getElementById('dash-create-exec-form');
 const dashCreateExecStatus = document.getElementById('dash-create-exec-status');
-dashCreateExecForm.addEventListener('submit', async (e) => {
+dashCreateExecForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const username = document.getElementById('dx-username').value.trim();
   const designation = document.getElementById('dx-designation').value.trim();
   const password = document.getElementById('dx-password').value;
   dashCreateExecStatus.textContent = 'Creating…';
   try {
-    await api('/api/executives', { method: 'POST', body: JSON.stringify({ username, designation, password }) });
-    dashCreateExecStatus.textContent = `Created "${username}". Share the credentials with them directly.`;
+    dbCreateExecutive({ username, designation, password });
+    dashCreateExecStatus.textContent = `Created "${username}" with a permanent password. Share the credentials with them directly.`;
     dashCreateExecForm.reset();
-    await loadExecManagement();
-    await loadDirectoryAndConversations();
+    loadExecManagement();
+    loadDirectoryAndConversations();
   } catch (err) {
     dashCreateExecStatus.textContent = err.message;
   }
 });
+
+// ---------- Password change requests (President reviews, in Manage Executives) ----------
+function renderPasswordRequests() {
+  const list = document.getElementById('password-requests-list');
+  if (!list) return;
+  const requests = dbGetPasswordRequests();
+  if (!requests.length) { list.innerHTML = '<p class="president-note" style="margin:0">No requests yet.</p>'; return; }
+  list.innerHTML = requests.map(r => `
+    <div class="exec-row" data-id="${r.id}" style="flex-wrap:wrap;gap:6px;">
+      <span class="name">${r.user ? escapeHtml(r.user.displayName) : 'Removed user'}${r.user ? ' <span class="desig">(' + escapeHtml(r.user.designation) + ')</span>' : ''}</span>
+      <span class="desig" data-detail>${r.status === 'pending' ? 'Requesting a new password' : 'New password ' + (r.status === 'approved' ? 'approved' : 'denied')} · ${new Date(r.createdAt).toLocaleString()}${r.status !== 'pending' ? ' · ' + r.status.toUpperCase() : ''}</span>
+      ${r.status === 'pending' ? `
+        <span style="display:flex;gap:8px;">
+          <button class="btn small" data-reveal type="button">Show requested password</button>
+          <button class="btn small solid" data-approve type="button">Approve</button>
+          <button class="btn small danger" data-deny type="button">Deny</button>
+        </span>` : ''}
+    </div>`).join('');
+
+  list.querySelectorAll('[data-reveal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('.exec-row');
+      const req = requests.find(r => r.id === row.dataset.id);
+      const detail = row.querySelector('[data-detail]');
+      detail.textContent = 'Requested password: ' + req.newPassword + (req.note ? ' — "' + req.note + '"' : '');
+    });
+  });
+  list.querySelectorAll('[data-approve]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      try { dbResolvePasswordRequest(btn.closest('.exec-row').dataset.id, 'approve'); renderPasswordRequests(); }
+      catch (err) { alert(err.message); }
+    });
+  });
+  list.querySelectorAll('[data-deny]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      try { dbResolvePasswordRequest(btn.closest('.exec-row').dataset.id, 'deny'); renderPasswordRequests(); }
+      catch (err) { alert(err.message); }
+    });
+  });
+}
 
 function placeholderAvatar() {
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -773,7 +1157,8 @@ document.querySelectorAll('.dash-tab').forEach(tab => {
 
 document.getElementById('sign-out').addEventListener('click', () => {
   if (socket) socket.disconnect();
-  session = { token: null, user: null };
+  session = { user: null };
+  clearPersistedSession();
   document.getElementById('dashboard').classList.add('hidden');
   document.getElementById('landing-header').classList.remove('hidden');
   document.getElementById('landing-main').classList.remove('hidden');
@@ -781,7 +1166,7 @@ document.getElementById('sign-out').addEventListener('click', () => {
 });
 
 function connectSocket() {
-  socket = io({ auth: { token: session.token } });
+  socket = createLocalSocket(session.user.id);
 
   socket.on('message:new', (message) => {
     if (message.conversationId === activeConversationId) {
@@ -811,17 +1196,18 @@ function connectSocket() {
 }
 
 // ---------- Profile ----------
-async function loadProfile() {
-  const p = await api('/api/profile/me');
+function loadProfile() {
+  const p = dbGetProfile(session.user.id);
   document.getElementById('profile-avatar-preview').src = p.avatarUrl || placeholderAvatar();
   document.getElementById('profile-bio').value = p.bio || '';
   window.__socialLinks = Array.isArray(p.socialLinks) ? p.socialLinks : [];
   renderSocialLinks();
+  renderPasswordSection();
 }
 function renderSocialLinks() {
   const list = document.getElementById('social-links-list');
   list.innerHTML = window.__socialLinks.map((l, i) => `
-    <div class="social-row"><input value="${l.platform}" disabled /><input value="${l.url}" disabled />
+    <div class="social-row"><input value="${escapeHtml(l.platform)}" disabled /><input value="${escapeHtml(l.url)}" disabled />
     <button class="btn small danger" type="button" data-i="${i}">Remove</button></div>
   `).join('');
   list.querySelectorAll('button[data-i]').forEach(btn => btn.addEventListener('click', () => {
@@ -844,52 +1230,102 @@ document.getElementById('avatar-input').addEventListener('change', (e) => {
   reader.onload = () => { document.getElementById('profile-avatar-preview').src = reader.result; window.__pendingAvatar = reader.result; };
   reader.readAsDataURL(file);
 });
-document.getElementById('save-profile').addEventListener('click', async () => {
+document.getElementById('save-profile').addEventListener('click', () => {
   const status = document.getElementById('profile-status');
   status.textContent = 'Saving…';
   try {
     const body = { bio: document.getElementById('profile-bio').value, socialLinks: window.__socialLinks };
     if (window.__pendingAvatar) body.avatarUrl = window.__pendingAvatar;
-    const updated = await api('/api/profile/me', { method: 'PATCH', body: JSON.stringify(body) });
+    const updated = dbUpdateProfile(session.user.id, body);
     session.user.avatarUrl = updated.avatarUrl;
     document.getElementById('dash-user-avatar').src = updated.avatarUrl || placeholderAvatar();
     status.textContent = 'Saved.';
   } catch (err) { status.textContent = err.message; }
 });
 
-// ---------- To-Do ----------
-async function loadTodos() {
-  const todos = await api('/api/todos');
-  renderTodos(todos);
+// ---------- Password (Profile tab): President changes directly, others request ----------
+function renderPasswordSection() {
+  const el = document.getElementById('password-section');
+  if (!el) return;
+  if (session.user.role === 'PRESIDENT') {
+    el.innerHTML = `
+      <h3 style="font-family:var(--display);font-size:1.05rem;font-weight:600;margin:0 0 6px;">Change password</h3>
+      <p class="president-note" style="margin:0 0 18px;">As President, this is the only place your password can be changed. It stays permanent until you update it again here.</p>
+      <form id="president-password-form">
+        <div class="field"><label for="pw-current">Current password</label><div class="pw-wrap"><input id="pw-current" type="password" autocomplete="current-password" required /><button type="button" class="pw-toggle" data-target="pw-current" tabindex="-1">Show</button></div></div>
+        <div class="field"><label for="pw-new">New password</label><div class="pw-wrap"><input id="pw-new" type="password" autocomplete="new-password" required /><button type="button" class="pw-toggle" data-target="pw-new" tabindex="-1">Show</button></div></div>
+        <p class="form-status" id="president-password-status"></p>
+        <button class="btn solid" type="submit" style="width:auto;padding:11px 26px;"><span class="label">Update password</span></button>
+      </form>`;
+    document.getElementById('president-password-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const status = document.getElementById('president-password-status');
+      try {
+        dbChangeOwnPassword(session.user.id, document.getElementById('pw-current').value, document.getElementById('pw-new').value);
+        status.textContent = 'Password updated permanently.';
+        e.target.reset();
+      } catch (err) { status.textContent = err.message; }
+    });
+  } else {
+    const myRequests = dbGetMyPasswordRequests(session.user.id);
+    const pending = myRequests.find(r => r.status === 'pending');
+    el.innerHTML = `
+      <h3 style="font-family:var(--display);font-size:1.05rem;font-weight:600;margin:0 0 6px;">Request password change</h3>
+      <p class="president-note" style="margin:0 0 18px;">Your password is permanent and set by the President. Request a new one below — the President can approve it (making it permanent) or deny it.</p>
+      ${pending ? '<p class="form-status" style="color:var(--gold)">A request is pending President review.</p>' : `
+      <form id="request-password-form">
+        <div class="field"><label for="rp-new">New password</label><div class="pw-wrap"><input id="rp-new" type="password" autocomplete="new-password" required /><button type="button" class="pw-toggle" data-target="rp-new" tabindex="-1">Show</button></div></div>
+        <div class="field"><label for="rp-note">Note (optional)</label><input id="rp-note" type="text" placeholder="Reason for the request" /></div>
+        <p class="form-status" id="request-password-status"></p>
+        <button class="btn solid" type="submit" style="width:auto;padding:11px 26px;"><span class="label">Send request</span></button>
+      </form>`}
+      ${myRequests.length ? `<div class="exec-list" style="margin-top:22px;border-top:1px solid var(--line);">${myRequests.map(r => `
+        <div class="exec-row"><span class="name">${new Date(r.createdAt).toLocaleString()}</span><span class="desig">${r.status.toUpperCase()}</span></div>
+      `).join('')}</div>` : ''}
+    `;
+    const form = document.getElementById('request-password-form');
+    if (form) form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const status = document.getElementById('request-password-status');
+      try {
+        dbRequestPasswordChange(session.user.id, document.getElementById('rp-new').value, document.getElementById('rp-note').value);
+        status.textContent = 'Request sent to the President.';
+        renderPasswordSection();
+      } catch (err) { status.textContent = err.message; }
+    });
+  }
 }
+
+// ---------- To-Do ----------
+function loadTodos() { renderTodos(dbGetTodos(session.user.id)); }
 function renderTodos(todos) {
   const list = document.getElementById('todo-list');
   list.innerHTML = todos.map(t => `
     <div class="todo-row ${t.done ? 'done' : ''}" data-id="${t.id}">
       <input type="checkbox" ${t.done ? 'checked' : ''} />
-      <span class="content">${t.content}</span>
+      <span class="content">${escapeHtml(t.content)}</span>
       <button data-del>Remove</button>
     </div>`).join('');
   list.querySelectorAll('.todo-row').forEach(row => {
     const id = row.dataset.id;
-    row.querySelector('input[type=checkbox]').addEventListener('change', async (e) => {
-      await api('/api/todos/' + id, { method: 'PATCH', body: JSON.stringify({ done: e.target.checked }) });
+    row.querySelector('input[type=checkbox]').addEventListener('change', (e) => {
+      dbUpdateTodo(session.user.id, id, { done: e.target.checked });
       row.classList.toggle('done', e.target.checked);
     });
-    row.querySelector('[data-del]').addEventListener('click', async () => {
-      await api('/api/todos/' + id, { method: 'DELETE' });
+    row.querySelector('[data-del]').addEventListener('click', () => {
+      dbDeleteTodo(session.user.id, id);
       row.remove();
     });
   });
 }
 document.getElementById('todo-add-btn').addEventListener('click', addTodo);
 document.getElementById('todo-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
-async function addTodo() {
+function addTodo() {
   const input = document.getElementById('todo-input');
   const content = input.value.trim();
   if (!content) return;
   input.value = '';
-  await api('/api/todos', { method: 'POST', body: JSON.stringify({ content }) });
+  dbAddTodo(session.user.id, content);
   loadTodos();
 }
 
@@ -899,13 +1335,13 @@ let conversations = [];
 let activeConversationId = null;
 let activeConversation = null;
 
-async function loadDirectoryAndConversations() {
-  directory = await api('/api/executives');
-  await refreshConvoList();
+function loadDirectoryAndConversations() {
+  directory = dbGetExecutives();
+  refreshConvoList();
   renderContactList();
 }
-async function refreshConvoList() {
-  conversations = await api('/api/conversations');
+function refreshConvoList() {
+  conversations = dbGetConversations(session.user.id);
   renderConvoList();
 }
 function otherParticipant(convo) {
@@ -918,7 +1354,7 @@ function renderConvoList() {
     const label = c.isGroup ? (c.title || 'Group') : (otherParticipant(c)?.displayName || 'Unknown');
     const last = c.messages && c.messages[0] ? c.messages[0].body : 'No messages yet';
     return `<div class="msg-convo ${c.id === activeConversationId ? 'active' : ''}" data-id="${c.id}">
-      <div><div class="msg-name">${label}</div><div class="msg-sub">${last}</div></div>
+      <div><div class="msg-name">${escapeHtml(label)}</div><div class="msg-sub">${escapeHtml(last)}</div></div>
     </div>`;
   }).join('');
   list.querySelectorAll('.msg-convo').forEach(el => el.addEventListener('click', () => openConversation(el.dataset.id)));
@@ -927,19 +1363,19 @@ function renderContactList() {
   const list = document.getElementById('contact-list');
   list.innerHTML = directory.filter(x => x.id !== session.user.id).map(x => `
     <div class="msg-contact" data-id="${x.id}">
-      <div><div class="msg-name">${x.displayName}</div><div class="msg-sub">${x.designation}</div></div>
+      <div><div class="msg-name">${escapeHtml(x.displayName)}</div><div class="msg-sub">${escapeHtml(x.designation)}</div></div>
     </div>`).join('');
-  list.querySelectorAll('.msg-contact').forEach(el => el.addEventListener('click', async () => {
-    const convo = await api('/api/conversations/direct', { method: 'POST', body: JSON.stringify({ otherUserId: el.dataset.id }) });
-    await refreshConvoList();
+  list.querySelectorAll('.msg-contact').forEach(el => el.addEventListener('click', () => {
+    const convo = dbCreateDirectConversation(session.user.id, el.dataset.id);
+    refreshConvoList();
     openConversation(convo.id);
   }));
 }
 
-async function openConversation(id) {
+function openConversation(id) {
   if (activeConversationId) socket.emit('conversation:leave', { conversationId: activeConversationId });
   activeConversationId = id;
-  activeConversation = conversations.find(c => c.id === id) || (await api('/api/conversations')).find(c => c.id === id);
+  activeConversation = conversations.find(c => c.id === id) || dbGetConversations(session.user.id).find(c => c.id === id);
   socket.emit('conversation:join', { conversationId: id });
   renderConvoList();
 
@@ -949,7 +1385,7 @@ async function openConversation(id) {
 
   thread.innerHTML = `
     <div class="msg-thread-head">
-      <span style="font-family:var(--display)">${title}</span>
+      <span style="font-family:var(--display)">${escapeHtml(title)}</span>
       ${!activeConversation.isGroup ? '<button class="btn small" id="call-btn">Call</button>' : ''}
     </div>
     <div class="msg-scroll" id="msg-scroll"></div>
@@ -957,7 +1393,7 @@ async function openConversation(id) {
     <div class="msg-input-row"><input type="text" id="msg-input" placeholder="Type a message…" /><button class="btn solid small" id="msg-send">Send</button></div>
   `;
 
-  const messages = await api('/api/conversations/' + id + '/messages');
+  const messages = dbGetMessages(id);
   const scroll = document.getElementById('msg-scroll');
   scroll.innerHTML = '';
   messages.forEach(appendBubble);
@@ -992,7 +1428,7 @@ function appendBubble(message) {
   div.className = 'bubble ' + (mine ? 'mine' : 'theirs');
   div.dataset.id = message.id;
   const senderLabel = !mine && activeConversation && activeConversation.isGroup ? (message.sender?.displayName + ': ') : '';
-  div.innerHTML = `${senderLabel}${escapeHtml(message.body)}<span class="meta">${new Date(message.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}${mine ? ' <span class="tick sent" data-tick>✓</span>' : ''}</span>`;
+  div.innerHTML = `${escapeHtml(senderLabel)}${escapeHtml(message.body)}<span class="meta">${new Date(message.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}${mine ? ' <span class="tick sent" data-tick>✓</span>' : ''}</span>`;
   scroll.appendChild(div);
   scroll.scrollTop = scroll.scrollHeight;
 }
@@ -1002,10 +1438,21 @@ function setTick(messageId, state) {
   if (state === 'delivered') { bubble.textContent = '✓✓'; bubble.classList.remove('read'); }
   if (state === 'read') { bubble.textContent = '✓✓'; bubble.classList.add('read'); }
 }
-function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+// ---------- Show/Hide password toggles (works for static and dynamically-rendered fields) ----------
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.pw-toggle');
+  if (!btn) return;
+  const input = document.getElementById(btn.dataset.target);
+  if (!input) return;
+  const nowShowing = input.type === 'password';
+  input.type = nowShowing ? 'text' : 'password';
+  btn.textContent = nowShowing ? 'Hide' : 'Show';
+});
 
 // ---------- 1:1 Calls (WebRTC) ----------
-let activeCall = null; // { pc, remoteUserId, conversationId, localStream, iceQueue }
+let activeCall = null; // { pc, remoteUserId, conversationId, localStream }
 
 function newPeerConnection(onIce, onTrack) {
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -1030,16 +1477,23 @@ async function startCall(toUserId, toName, conversationId) {
   socket.emit('call:invite', { toUserId, conversationId });
 }
 
+// Shows who is calling — their name (and role) — pulled straight from the executive directory.
 function showIncomingCall(fromUserId, conversationId) {
   const contact = directory.find(d => d.id === fromUserId);
-  document.getElementById('incoming-call-name').textContent = (contact?.displayName || 'Someone') + ' is calling';
+  const callerName = contact?.displayName || 'Someone';
+  const callerRole = contact?.designation ? ' · ' + contact.designation : '';
+  document.getElementById('incoming-call-name').textContent = callerName + ' is calling';
+  document.querySelector('#incoming-call-banner div div[style*="font-size:0.68rem"]').textContent = 'Audio/video call' + callerRole;
   document.getElementById('incoming-call-banner').classList.remove('hidden');
-  beep(500, 150, 0.06);
-  document.getElementById('accept-call').onclick = async () => {
+
+  const accept = document.getElementById('accept-call');
+  const decline = document.getElementById('decline-call');
+  const onAccept = async () => {
+    cleanup();
     document.getElementById('incoming-call-banner').classList.add('hidden');
     const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
     document.getElementById('call-local-video').srcObject = localStream;
-    document.getElementById('call-remote-label').textContent = contact?.displayName || 'Connecting…';
+    document.getElementById('call-remote-label').textContent = callerName;
     document.getElementById('call-status-text').textContent = 'Connecting…';
     document.getElementById('call-overlay').classList.remove('hidden');
     const pc = newPeerConnection(
@@ -1050,10 +1504,14 @@ function showIncomingCall(fromUserId, conversationId) {
     activeCall = { pc, remoteUserId: fromUserId, conversationId, localStream };
     socket.emit('call:accept', { toUserId: fromUserId, conversationId });
   };
-  document.getElementById('decline-call').onclick = () => {
+  const onDecline = () => {
+    cleanup();
     document.getElementById('incoming-call-banner').classList.add('hidden');
     socket.emit('call:reject', { toUserId: fromUserId, conversationId });
   };
+  function cleanup() { accept.removeEventListener('click', onAccept); decline.removeEventListener('click', onDecline); }
+  accept.addEventListener('click', onAccept);
+  decline.addEventListener('click', onDecline);
 }
 
 async function onCallAccepted(fromUserId) {
@@ -1098,14 +1556,14 @@ document.getElementById('call-mute').addEventListener('click', (e) => {
 });
 
 // ---------- Meetings ----------
-async function loadMeetings() {
+function loadMeetings() {
   const hostArea = document.getElementById('meeting-host-area');
   if (session.user.role === 'PRESIDENT') {
     hostArea.innerHTML = `<div class="meeting-host-form"><input type="text" id="meeting-title" placeholder="Meeting title" /><button class="btn solid" id="host-meeting-btn" style="width:auto;padding:11px 22px;">Host meeting</button></div>`;
     document.getElementById('host-meeting-btn').addEventListener('click', async () => {
       const title = document.getElementById('meeting-title').value.trim();
       if (!title) return;
-      const meeting = await api('/api/meetings', { method: 'POST', body: JSON.stringify({ title }) });
+      const meeting = dbHostMeeting(session.user.id, title);
       await enterMeetingRoom(meeting.id, title);
       loadMeetings();
     });
@@ -1113,11 +1571,11 @@ async function loadMeetings() {
     hostArea.innerHTML = `<p class="president-note" style="margin:0 0 20px">Only the President can host a meeting. You can join a live meeting below.</p>`;
   }
 
-  const meetings = await api('/api/meetings');
+  const meetings = dbGetMeetings();
   const list = document.getElementById('meeting-list');
   list.innerHTML = meetings.map(m => `
-    <div class="meeting-row" data-id="${m.id}" data-title="${m.title}">
-      <div class="meeting-info"><div class="t">${m.title}</div><div class="m">Hosted by ${m.host.displayName} · ${m.participantCount}/${m.maxParticipants} participants</div></div>
+    <div class="meeting-row" data-id="${m.id}" data-title="${escapeHtml(m.title)}">
+      <div class="meeting-info"><div class="t">${escapeHtml(m.title)}</div><div class="m">Hosted by ${escapeHtml(m.host?.displayName || 'Unknown')} · ${m.participantCount}/${m.maxParticipants} participants</div></div>
       <button class="btn small join-meeting-btn" ${m.participantCount >= m.maxParticipants ? 'disabled' : ''}>${m.participantCount >= m.maxParticipants ? 'Full' : 'Join'}</button>
     </div>`).join('') || '<p class="president-note" style="margin:0">No live meetings right now.</p>';
 
@@ -1125,7 +1583,6 @@ async function loadMeetings() {
     btn.addEventListener('click', async (e) => {
       const row = e.target.closest('.meeting-row');
       try {
-        await api('/api/meetings/' + row.dataset.id + '/join', { method: 'POST' });
         await enterMeetingRoom(row.dataset.id, row.dataset.title);
       } catch (err) { alert(err.message); }
     });
@@ -1202,7 +1659,7 @@ function renderMeetingTiles() {
   let html = `<div class="tile"><video autoplay muted playsinline id="room-local-video"></video><span class="label">You</span></div>`;
   activeMeeting.peers.forEach((peer, userId) => {
     const name = (directory.find(d => d.id === userId) || {}).displayName || 'Participant';
-    html += `<div class="tile"><video autoplay playsinline id="room-video-${userId}"></video><span class="label">${name}</span></div>`;
+    html += `<div class="tile"><video autoplay playsinline id="room-video-${userId}"></video><span class="label">${escapeHtml(name)}</span></div>`;
   });
   grid.innerHTML = html;
   document.getElementById('room-local-video').srcObject = activeMeeting.localStream;
@@ -1219,7 +1676,6 @@ function updateRoomCount() {
 async function leaveMeeting() {
   if (!activeMeeting) return;
   socket.emit('meeting:leave', { meetingId: activeMeeting.id });
-  try { await api('/api/meetings/' + activeMeeting.id + '/leave', { method: 'POST' }); } catch (e) {}
   activeMeeting.peers.forEach(p => p.pc.close());
   activeMeeting.localStream.getTracks().forEach(t => t.stop());
   activeMeeting = null;
@@ -1233,7 +1689,18 @@ document.getElementById('room-mute').addEventListener('click', (e) => {
   track.enabled = !track.enabled;
   e.target.textContent = track.enabled ? 'Mute' : 'Unmute';
 });
+
+// ---------- Restore session on refresh ----------
+(function restoreSession() {
+  let savedId = null;
+  try { savedId = sessionStorage.getItem(SESSION_KEY); } catch (e) {}
+  if (!savedId) return;
+  const user = readDB().users.find(u => u.id === savedId);
+  if (!user) { clearPersistedSession(); return; }
+  session = { user: publicUser(user) };
+  enterDashboard();
+})();
+
 </script>
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </body>
 </html>
