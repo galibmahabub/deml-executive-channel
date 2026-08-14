@@ -45,14 +45,31 @@
   @keyframes scroll-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
   /* ---------- Ambient backdrop ---------- */
+  #space-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: block; }
+  @media (prefers-reduced-motion: reduce) { #space-bg { display: none; } }
+
   .backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(600px circle at 82% 18%, rgba(176,141,87,0.10), transparent 60%), radial-gradient(500px circle at 10% 70%, rgba(176,141,87,0.06), transparent 60%); }
-  .grid-lines { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-image: linear-gradient(rgba(200,205,212,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(200,205,212,0.035) 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(circle at 60% 30%, black, transparent 75%); }
+  .grid-lines { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-image: linear-gradient(rgba(200,205,212,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(200,205,212,0.035) 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(circle at 60% 30%, black, transparent 75%); animation: grid-pan 50s linear infinite; }
+  @keyframes grid-pan { from { background-position: 0 0, 0 0; } to { background-position: 64px 64px, 64px 64px; } }
 
   header, main, footer, #dashboard { position: relative; z-index: 1; }
 
   header { display: flex; align-items: center; justify-content: space-between; padding: 26px clamp(24px, 6vw, 72px); }
   .logo { display: flex; align-items: center; gap: 12px; }
   .logo-mark { width: 30px; height: 30px; flex-shrink: 0; }
+  .logo-mark .logo-arc { transform-origin: 16px 16px; animation: logo-sweep 9s linear infinite; }
+  .logo-mark .logo-arc:nth-of-type(2) { animation-duration: 14s; animation-direction: reverse; }
+  .logo-mark .logo-dot { animation: logo-pulse 2.4s ease-in-out infinite; transform-origin: 16px 16px; }
+  .logo-mark .logo-ring { animation: logo-ring-glow 4s ease-in-out infinite; transform-origin: 16px 16px; }
+  @keyframes logo-sweep { to { transform: rotate(360deg); } }
+  @keyframes logo-pulse {
+    0%, 100% { opacity: 0.75; r: 2.4px; }
+    50% { opacity: 1; r: 3px; }
+  }
+  @keyframes logo-ring-glow {
+    0%, 100% { opacity: 0.75; }
+    50% { opacity: 1; }
+  }
   .logo-text { font-family: var(--display); font-weight: 700; font-size: 1.05rem; letter-spacing: 0.02em; color: var(--platinum); line-height: 1.15; }
   .logo-text small { display: block; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.18em; color: var(--gold); font-weight: 400; margin-top: 2px; }
 
@@ -70,7 +87,14 @@
   .btn-ghost:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
 
   /* ---------- Hero ---------- */
-  .hero { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 0 clamp(24px, 6vw, 72px); }
+  .hero { position: relative; overflow: hidden; min-height: 72vh; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 0 clamp(24px, 6vw, 72px); }
+  .hero-glow { position: absolute; z-index: -1; border-radius: 50%; filter: blur(70px); pointer-events: none; }
+  .hero-glow-1 { width: 460px; height: 460px; top: -140px; right: 6%; background: radial-gradient(circle, rgba(176,141,87,0.24), transparent 70%); animation: glow-drift-1 17s ease-in-out infinite; }
+  .hero-glow-2 { width: 340px; height: 340px; bottom: -120px; left: 2%; background: radial-gradient(circle, rgba(176,141,87,0.15), transparent 70%); animation: glow-drift-2 21s ease-in-out infinite; }
+  @keyframes glow-drift-1 { 0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.75; } 50% { transform: translate(-36px, 44px) scale(1.15); opacity: 1; } }
+  @keyframes glow-drift-2 { 0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.55; } 50% { transform: translate(30px, -28px) scale(1.12); opacity: 0.9; } }
+  .eyebrow-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--gold-bright); margin-right: 9px; box-shadow: 0 0 6px 1px rgba(201,164,107,0.7); animation: eyebrow-pulse 2s ease-in-out infinite; vertical-align: middle; }
+  @keyframes eyebrow-pulse { 0%, 100% { opacity: 0.6; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.15); } }
   .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; margin: 0 0 18px; opacity: 0; animation: fade-up 0.6s ease forwards; animation-delay: 0.1s; }
   .headline { font-family: var(--display); font-weight: 600; font-size: clamp(2.4rem, 6vw, 4.6rem); line-height: 1.06; margin: 0; max-width: 880px; letter-spacing: -0.01em; }
   .headline .line { display: block; overflow: hidden; }
@@ -79,6 +103,11 @@
   .subhead { font-size: clamp(1rem, 1.5vw, 1.15rem); color: var(--muted); max-width: 540px; margin: 26px 0 36px; line-height: 1.6; opacity: 0; animation: fade-up 0.7s ease forwards; animation-delay: 1.15s; }
   @keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
   .hero-actions { display: flex; gap: 14px; opacity: 0; animation: fade-up 0.7s ease forwards; animation-delay: 1.35s; }
+  .hero-actions .btn.solid { animation: cta-breathe 3.4s ease-in-out 2.1s infinite; }
+  @keyframes cta-breathe {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(201,164,107,0.35); }
+    50% { box-shadow: 0 0 0 8px rgba(201,164,107,0); }
+  }
 
   .channels { padding: 60px clamp(24px, 6vw, 72px) 110px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
   .channel { background: var(--onyx); padding: 34px 30px; opacity: 0; transform: translateY(20px); transition: background 0.3s ease; }
@@ -202,6 +231,21 @@
   @media (max-width: 760px) {
     .msg-layout { grid-template-columns: 1fr; height: auto; }
     .profile-grid { grid-template-columns: 1fr; }
+
+    .dash-top { flex-wrap: wrap; row-gap: 12px; padding: 14px 16px; }
+    .dash-top .logo { order: 1; }
+    .dash-user { order: 2; }
+    .dash-tabs {
+      order: 3; width: 100%;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+    .dash-tabs::-webkit-scrollbar { height: 4px; }
+    .dash-tabs::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+    .dash-tab { flex-shrink: 0; white-space: nowrap; }
+    .dash-user .who .n { font-size: 0.8rem; }
+    .dash-user .who .d { font-size: 0.6rem; }
+    #sign-out { border: 1px solid var(--line); padding: 6px 12px; border-radius: 2px; white-space: nowrap; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -211,6 +255,7 @@
 </head>
 <body>
 
+<canvas id="space-bg"></canvas>
 <div id="signal-cursor"><div class="signal-ring"></div><div class="signal-dot"></div></div>
 <div class="backdrop"></div>
 <div class="grid-lines"></div>
@@ -220,10 +265,10 @@
 <header id="landing-header">
   <div class="logo">
     <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="16" cy="16" r="15" stroke="#B08D57" stroke-width="1.2"/>
-      <circle cx="16" cy="16" r="2.4" fill="#C9A46B"/>
-      <path d="M16 6.5a9.5 9.5 0 0 1 9.5 9.5" stroke="#B08D57" stroke-width="1.2" stroke-linecap="round"/>
-      <path d="M16 3.5a12.5 12.5 0 0 1 12.5 12.5" stroke="#B08D57" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
+      <circle class="logo-ring" cx="16" cy="16" r="15" stroke="#B08D57" stroke-width="1.2"/>
+      <circle class="logo-dot" cx="16" cy="16" r="2.4" fill="#C9A46B"/>
+      <path class="logo-arc" d="M16 6.5a9.5 9.5 0 0 1 9.5 9.5" stroke="#B08D57" stroke-width="1.2" stroke-linecap="round"/>
+      <path class="logo-arc" d="M16 3.5a12.5 12.5 0 0 1 12.5 12.5" stroke="#B08D57" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
     </svg>
     <div class="logo-text">DEML<small>EXECUTIVE&nbsp;CHANNEL</small></div>
   </div>
@@ -235,7 +280,9 @@
 
 <main id="landing-main">
   <section class="hero">
-    <p class="eyebrow">Verified network · By invitation only</p>
+    <div class="hero-glow hero-glow-1"></div>
+    <div class="hero-glow hero-glow-2"></div>
+    <p class="eyebrow"><span class="eyebrow-dot"></span>Verified network · By invitation only</p>
     <h1 class="headline" id="headline"></h1>
     <p class="subhead">DEML Executive Channel connects verified leaders for real-time briefings, direct conversation, and President-hosted meetings — no public feed, no delay, no noise.</p>
     <div class="hero-actions">
@@ -281,27 +328,14 @@
     </svg></div>
     <p class="panel-eyebrow">Office of the President</p>
     <h2 class="panel-title">President Access</h2>
-    <p class="president-note">Only the President can create Executive accounts — set a username, designation, and password directly.</p>
+    <p class="president-note">Sign in with your President credentials. Once inside, use the "Manage Executives" tab to add or remove executive accounts.</p>
 
-    <div id="president-login-step">
-      <form id="president-form">
-        <div class="field"><label for="p-username">Username</label><input id="p-username" type="text" autocomplete="username" required /></div>
-        <div class="field"><label for="p-password">Password</label><input id="p-password" type="password" autocomplete="current-password" required /></div>
-        <p class="form-status" id="president-status"></p>
-        <button type="submit" class="btn solid" id="president-submit"><span class="submit-ring"></span><span class="label">Authenticate</span></button>
-      </form>
-    </div>
-
-    <div id="president-manage-step" class="hidden">
-      <form id="create-exec-form">
-        <div class="field"><label for="e-username">Username</label><input id="e-username" type="text" required /></div>
-        <div class="field"><label for="e-designation">Designation</label><input id="e-designation" type="text" placeholder="e.g. Chief Financial Officer" required /></div>
-        <div class="field"><label for="e-password">Password</label><input id="e-password" type="password" required /></div>
-        <p class="form-status" id="create-exec-status"></p>
-        <button type="submit" class="btn solid" id="create-exec-submit"><span class="submit-ring"></span><span class="label">Create executive</span></button>
-      </form>
-      <div class="exec-list" id="exec-list"></div>
-    </div>
+    <form id="president-form">
+      <div class="field"><label for="p-username">Username</label><input id="p-username" type="text" autocomplete="username" required /></div>
+      <div class="field"><label for="p-password">Password</label><input id="p-password" type="password" autocomplete="current-password" required /></div>
+      <p class="form-status" id="president-status"></p>
+      <button type="submit" class="btn solid" id="president-submit"><span class="submit-ring"></span><span class="label">Authenticate</span></button>
+    </form>
   </div>
 </div>
 
@@ -310,15 +344,19 @@
   <div class="dash-top">
     <div class="logo">
       <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="16" cy="16" r="15" stroke="#B08D57" stroke-width="1.2"/><circle cx="16" cy="16" r="2.4" fill="#C9A46B"/>
+        <circle class="logo-ring" cx="16" cy="16" r="15" stroke="#B08D57" stroke-width="1.2"/>
+        <circle class="logo-dot" cx="16" cy="16" r="2.4" fill="#C9A46B"/>
+        <path class="logo-arc" d="M16 6.5a9.5 9.5 0 0 1 9.5 9.5" stroke="#B08D57" stroke-width="1.2" stroke-linecap="round"/>
+        <path class="logo-arc" d="M16 3.5a12.5 12.5 0 0 1 12.5 12.5" stroke="#B08D57" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
       </svg>
       <div class="logo-text">DEML<small>EXECUTIVE&nbsp;CHANNEL</small></div>
     </div>
-    <div class="dash-tabs">
+    <div class="dash-tabs" id="dash-tabs">
       <button class="dash-tab active" data-tab="profile">Profile</button>
       <button class="dash-tab" data-tab="todo">To-Do</button>
       <button class="dash-tab" data-tab="messages">Messages</button>
       <button class="dash-tab" data-tab="meeting">Meeting</button>
+      <button class="dash-tab hidden" data-tab="execs" id="tab-execs">Manage Executives</button>
     </div>
     <div class="dash-user">
       <div class="who"><div class="n" id="dash-user-name"></div><div class="d" id="dash-user-desig"></div></div>
@@ -383,6 +421,19 @@
       <div id="meeting-host-area"></div>
       <div id="meeting-list"></div>
     </div>
+
+    <!-- Manage Executives (President only) -->
+    <div class="dash-panel" id="panel-execs">
+      <h2 class="section-title">Manage Executives</h2>
+      <form id="dash-create-exec-form" class="meeting-host-form" style="flex-wrap:wrap;row-gap:10px;">
+        <input type="text" id="dx-username" placeholder="Username" required style="flex:1;min-width:130px;" />
+        <input type="text" id="dx-designation" placeholder="Designation" required style="flex:1;min-width:170px;" />
+        <input type="password" id="dx-password" placeholder="Password" required style="flex:1;min-width:130px;" />
+        <button class="btn solid" type="submit" style="width:auto;padding:11px 22px;">Add executive</button>
+      </form>
+      <p class="form-status" id="dash-create-exec-status"></p>
+      <div class="exec-list" id="dash-exec-list"></div>
+    </div>
   </div>
 </div>
 
@@ -446,6 +497,79 @@ function beep(freq, duration, vol) {
     setTimeout(() => { osc.stop(); ctx.close(); }, duration);
   } catch (e) {}
 }
+
+// ---------- Ambient space-dust background ----------
+(function initSpaceBackground() {
+  const canvas = document.getElementById('space-bg');
+  if (!canvas || !canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion) return; // CSS already hides the canvas; skip the work entirely
+
+  let w = 0, h = 0, dpr = 1;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = window.innerWidth; h = window.innerHeight;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const GOLD = [201, 164, 107];
+  const PLATINUM = [200, 205, 212];
+  const COUNT = Math.max(40, Math.min(150, Math.floor((window.innerWidth * window.innerHeight) / 9000)));
+
+  function makeParticle() {
+    return {
+      x: Math.random() * w,
+      y: Math.random() * h,
+      radius: 0.6 + Math.random() * 1.7,
+      baseAlpha: 0.18 + Math.random() * 0.42,
+      color: Math.random() < 0.6 ? GOLD : PLATINUM,
+      angle: Math.random() * Math.PI * 2,
+      angleSpeed: (Math.random() - 0.5) * 0.0007,
+      // Each particle has its own baseline speed AND its own rhythm for
+      // speeding up / slowing down over time, so motion feels organic
+      // rather than a single uniform drift.
+      baseSpeed: 0.04 + Math.random() * 0.4,
+      speedFreq: 0.0004 + Math.random() * 0.0018,
+      speedPhase: Math.random() * Math.PI * 2,
+      twinkleFreq: 0.0008 + Math.random() * 0.0026,
+      twinklePhase: Math.random() * Math.PI * 2,
+    };
+  }
+  const particles = [];
+  for (let i = 0; i < COUNT; i++) particles.push(makeParticle());
+
+  function step(t) {
+    ctx.clearRect(0, 0, w, h);
+    for (const p of particles) {
+      const speedWave = 0.35 + 0.95 * (0.5 + 0.5 * Math.sin(t * p.speedFreq + p.speedPhase));
+      const speed = p.baseSpeed * speedWave; // oscillates: sometimes slow, sometimes fast
+      p.angle += p.angleSpeed;
+      p.x += Math.cos(p.angle) * speed;
+      p.y += Math.sin(p.angle) * speed - speed * 0.18; // gentle upward drift, like zero-gravity dust
+
+      if (p.x < -12) p.x = w + 12;
+      if (p.x > w + 12) p.x = -12;
+      if (p.y < -12) p.y = h + 12;
+      if (p.y > h + 12) p.y = -12;
+
+      const twinkle = 0.5 + 0.5 * Math.sin(t * p.twinkleFreq + p.twinklePhase);
+      const alpha = p.baseAlpha * (0.45 + 0.55 * twinkle);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${p.color[0]}, ${p.color[1]}, ${p.color[2]}, ${alpha.toFixed(3)})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+})();
 
 // ---------- Ticker ----------
 const tickerItems = ['VERIFIED NETWORK', 'REAL-TIME BRIEFINGS', 'INVITATION ONLY', 'ENCRYPTED CHANNEL', 'DIRECT ACCESS', 'NO PUBLIC FEED'];
@@ -533,8 +657,6 @@ presidentOverlay.addEventListener('click', (e) => { if (e.target === presidentOv
 const presidentForm = document.getElementById('president-form');
 const presidentStatus = document.getElementById('president-status');
 const presidentSubmit = document.getElementById('president-submit');
-const loginStep = document.getElementById('president-login-step');
-const manageStep = document.getElementById('president-manage-step');
 
 presidentForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -547,44 +669,13 @@ presidentForm.addEventListener('submit', async (e) => {
     if (data.user.role !== 'PRESIDENT') throw new Error('This account does not have President access.');
     session = { token: data.token, user: data.user };
     presidentStatus.textContent = '';
-    loginStep.classList.add('hidden');
-    manageStep.classList.remove('hidden');
-    await refreshExecList();
+    presidentOverlay.classList.remove('open');
+    presidentForm.reset();
+    enterDashboard();
   } catch (err) {
     presidentStatus.textContent = err.message;
   } finally {
     presidentSubmit.classList.remove('pulsing');
-  }
-});
-
-async function refreshExecList() {
-  const list = document.getElementById('exec-list');
-  try {
-    const execs = await api('/api/executives');
-    list.innerHTML = execs.map(x => `<div class="exec-row"><span class="name">${x.displayName}</span><span class="desig">${x.designation} · ${x.role}</span></div>`).join('');
-  } catch (err) {
-    list.innerHTML = `<p class="form-status">${err.message}</p>`;
-  }
-}
-
-const createExecForm = document.getElementById('create-exec-form');
-const createExecStatus = document.getElementById('create-exec-status');
-const createExecSubmit = document.getElementById('create-exec-submit');
-createExecForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('e-username').value.trim();
-  const designation = document.getElementById('e-designation').value.trim();
-  const password = document.getElementById('e-password').value;
-  createExecSubmit.classList.add('pulsing'); createExecStatus.textContent = 'Creating…';
-  try {
-    await api('/api/executives', { method: 'POST', body: JSON.stringify({ username, designation, password }) });
-    createExecStatus.textContent = `Created "${username}". Share the credentials with them directly.`;
-    createExecForm.reset();
-    await refreshExecList();
-  } catch (err) {
-    createExecStatus.textContent = err.message;
-  } finally {
-    createExecSubmit.classList.remove('pulsing');
   }
 });
 
@@ -601,12 +692,69 @@ function enterDashboard() {
   document.getElementById('dash-user-desig').textContent = session.user.designation || session.user.role;
   document.getElementById('dash-user-avatar').src = session.user.avatarUrl || placeholderAvatar();
 
+  const execTab = document.getElementById('tab-execs');
+  if (session.user.role === 'PRESIDENT') {
+    execTab.classList.remove('hidden');
+    loadExecManagement();
+  } else {
+    execTab.classList.add('hidden');
+  }
+
   connectSocket();
   loadProfile();
   loadTodos();
   loadDirectoryAndConversations();
   loadMeetings();
 }
+
+// ---------- Manage Executives (President only) ----------
+async function loadExecManagement() {
+  const list = document.getElementById('dash-exec-list');
+  try {
+    const execs = await api('/api/executives');
+    list.innerHTML = execs.map(x => `
+      <div class="exec-row" data-id="${x.id}">
+        <span class="name">${x.displayName}</span>
+        <span class="desig">${x.designation} · ${x.role}</span>
+        ${x.role !== 'PRESIDENT' ? `<button class="btn small danger" data-remove="${x.id}" type="button" style="margin-left:12px;">Remove</button>` : ''}
+      </div>`).join('');
+    list.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Remove this executive? This cannot be undone.')) return;
+        btn.disabled = true; btn.textContent = 'Removing…';
+        try {
+          await api('/api/executives/' + btn.dataset.remove, { method: 'DELETE' });
+          await loadExecManagement();
+          await loadDirectoryAndConversations();
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false; btn.textContent = 'Remove';
+        }
+      });
+    });
+  } catch (err) {
+    list.innerHTML = `<p class="form-status">${err.message}</p>`;
+  }
+}
+
+const dashCreateExecForm = document.getElementById('dash-create-exec-form');
+const dashCreateExecStatus = document.getElementById('dash-create-exec-status');
+dashCreateExecForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('dx-username').value.trim();
+  const designation = document.getElementById('dx-designation').value.trim();
+  const password = document.getElementById('dx-password').value;
+  dashCreateExecStatus.textContent = 'Creating…';
+  try {
+    await api('/api/executives', { method: 'POST', body: JSON.stringify({ username, designation, password }) });
+    dashCreateExecStatus.textContent = `Created "${username}". Share the credentials with them directly.`;
+    dashCreateExecForm.reset();
+    await loadExecManagement();
+    await loadDirectoryAndConversations();
+  } catch (err) {
+    dashCreateExecStatus.textContent = err.message;
+  }
+});
 
 function placeholderAvatar() {
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(
