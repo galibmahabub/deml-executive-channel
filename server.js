@@ -35,6 +35,7 @@ const db = {
   messages: new Map(),       // id -> message
   meetings: new Map(),       // id -> meeting
 };
+const passwordRequests = new Map(); // id -> { id, userId, newPassword, note, status, createdAt, resolvedAt }
 
 function publicUser(u) {
   if (!u) return null;
@@ -185,6 +186,21 @@ app.post('/api/executives', authMiddleware, requirePresident, (req, res) => {
   res.status(201).json(publicUser(user));
 });
 
+app.delete('/api/executives/:id', authMiddleware, requirePresident, (req, res) => {
+  const user = db.users.get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Executive not found.' });
+  if (user.role === 'PRESIDENT') return res.status(400).json({ error: 'The President account cannot be removed.' });
+
+  db.users.delete(user.id);
+  for (const [id, r] of passwordRequests) if (r.userId === user.id) passwordRequests.delete(id);
+  for (const c of db.conversations.values()) c.participantIds = c.participantIds.filter(pid => pid !== user.id);
+  for (const m of db.meetings.values()) {
+    m.participantIds = m.participantIds.filter(pid => pid !== user.id);
+    if (m.hostId === user.id) m.active = false;
+  }
+  res.status(204).end();
+});
+
 // =========================================================================
 // Profile
 // =========================================================================
@@ -200,6 +216,84 @@ app.patch('/api/profile/me', authMiddleware, (req, res) => {
   if (Array.isArray(socialLinks)) u.socialLinks = socialLinks;
   if (typeof avatarUrl === 'string') u.avatarUrl = avatarUrl;
   res.json({ avatarUrl: u.avatarUrl || null, bio: u.bio || '', socialLinks: u.socialLinks || [] });
+});
+
+// =========================================================================
+// Passwords — President changes their own directly; executives submit a
+// request that only the President can approve (which sets it permanently)
+// or deny.
+// =========================================================================
+app.patch('/api/auth/password', authMiddleware, (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  const u = req.user;
+  if (u.role !== 'PRESIDENT') return res.status(403).json({ error: 'Only the President can change a password directly. Submit a request instead.' });
+  if (!currentPassword || !bcrypt.compareSync(currentPassword, u.passwordHash)) {
+    return res.status(401).json({ error: 'Current password is incorrect.' });
+  }
+  if (!newPassword || newPassword.length < 4) return res.status(400).json({ error: 'New password must be at least 4 characters.' });
+  u.passwordHash = bcrypt.hashSync(newPassword, 10);
+  res.json({ ok: true });
+});
+
+function publicPasswordRequest(r) {
+  return {
+    id: r.id,
+    userId: r.userId,
+    user: publicUser(db.users.get(r.userId)),
+    newPassword: r.status === 'pending' ? r.newPassword : undefined,
+    note: r.note,
+    status: r.status,
+    createdAt: r.createdAt,
+    resolvedAt: r.resolvedAt,
+  };
+}
+
+app.post('/api/password-requests', authMiddleware, (req, res) => {
+  const { newPassword, note } = req.body || {};
+  const u = req.user;
+  if (!newPassword || newPassword.length < 4) return res.status(400).json({ error: 'New password must be at least 4 characters.' });
+  const pending = [...passwordRequests.values()].some(r => r.userId === u.id && r.status === 'pending');
+  if (pending) return res.status(409).json({ error: 'You already have a pending request.' });
+
+  const request = {
+    id: uuid(),
+    userId: u.id,
+    newPassword, // held only until the President approves or denies
+    note: (note || '').trim(),
+    status: 'pending',
+    createdAt: Date.now(),
+    resolvedAt: null,
+  };
+  passwordRequests.set(request.id, request);
+  res.status(201).json(publicPasswordRequest(request));
+});
+
+// President sees every request; executives see only their own.
+app.get('/api/password-requests', authMiddleware, (req, res) => {
+  const all = [...passwordRequests.values()].sort((a, b) => b.createdAt - a.createdAt);
+  const list = req.user.role === 'PRESIDENT' ? all : all.filter(r => r.userId === req.user.id);
+  res.json(list.map(publicPasswordRequest));
+});
+
+app.post('/api/password-requests/:id/resolve', authMiddleware, requirePresident, (req, res) => {
+  const request = passwordRequests.get(req.params.id);
+  if (!request) return res.status(404).json({ error: 'Request not found.' });
+  if (request.status !== 'pending') return res.status(409).json({ error: 'This request was already resolved.' });
+
+  const { action } = req.body || {};
+  if (action === 'approve') {
+    const u = db.users.get(request.userId);
+    if (!u) return res.status(404).json({ error: 'User not found.' });
+    u.passwordHash = bcrypt.hashSync(request.newPassword, 10);
+    request.status = 'approved';
+  } else if (action === 'deny') {
+    request.status = 'denied';
+  } else {
+    return res.status(400).json({ error: 'Action must be "approve" or "deny".' });
+  }
+  request.newPassword = undefined; // never keep plaintext around after resolution
+  request.resolvedAt = Date.now();
+  res.json(publicPasswordRequest(request));
 });
 
 // =========================================================================
