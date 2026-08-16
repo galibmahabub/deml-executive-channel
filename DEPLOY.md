@@ -1,3 +1,4 @@
+[DEPLOY.md](https://github.com/user-attachments/files/31122973/DEPLOY.md)
 # Putting DEML Executive Channel online — for free
 
 This version serves the website AND the backend from one place, so you only
