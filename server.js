@@ -556,8 +556,8 @@ io.on('connection', (socket) => {
   });
 
   // ---- 1:1 calls (WebRTC signaling relay) ----
-  socket.on('call:invite', ({ toUserId, conversationId }) => {
-    emitToUser(toUserId, 'call:incoming', { fromUserId: userId, conversationId });
+  socket.on('call:invite', ({ toUserId, conversationId, video }) => {
+    emitToUser(toUserId, 'call:incoming', { fromUserId: userId, conversationId, video: !!video });
   });
   socket.on('call:accept', ({ toUserId, conversationId }) => {
     emitToUser(toUserId, 'call:accepted', { fromUserId: userId, conversationId });
