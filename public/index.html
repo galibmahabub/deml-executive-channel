@@ -40,6 +40,7 @@
   /* ---------- Ticker ---------- */
   .ticker { position: relative; z-index: 2; overflow: hidden; border-bottom: 1px solid var(--line); background: var(--graphite); white-space: nowrap; padding: 8px 0; }
   .ticker-track { display: inline-block; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em; color: var(--muted); animation: scroll-left 26s linear infinite; }
+  .ticker:hover .ticker-track { animation-play-state: paused; }
   .ticker-track span { margin-right: 40px; }
   .ticker-track span.dot { color: var(--gold); }
   @keyframes scroll-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
@@ -77,6 +78,13 @@
   .btn:hover { border-color: var(--gold); transform: translateY(-1px); }
   .btn.solid { background: var(--gold); border-color: var(--gold); color: #16130c; }
   .btn.solid:hover { background: var(--gold-bright); border-color: var(--gold-bright); }
+  .btn:active { transform: translateY(0) scale(0.97); }
+  .btn { position: relative; overflow: hidden; }
+  .btn-ripple { position: absolute; border-radius: 50%; background: rgba(201,164,107,0.45); transform: scale(0); animation: ripple-out 0.6s ease-out forwards; pointer-events: none; }
+  @keyframes ripple-out { to { transform: scale(1); opacity: 0; } }
+
+  #cursor-glow { position: fixed; top: 0; left: 0; width: 480px; height: 480px; margin: -240px 0 0 -240px; border-radius: 50%; background: radial-gradient(circle, rgba(176,141,87,0.05), transparent 70%); pointer-events: none; z-index: 0; transition: opacity 0.4s ease; opacity: 0; }
+  @media (hover: none) { #cursor-glow { display: none; } }
   .btn.small { padding: 7px 14px; font-size: 0.78rem; }
   .btn.danger { border-color: var(--danger); color: #e0a2a2; }
   .btn.danger:hover { background: var(--danger); color: #fff; }
@@ -87,7 +95,8 @@
   .btn-ghost:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
 
   /* ---------- Hero ---------- */
-  .hero { position: relative; overflow: hidden; min-height: 72vh; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 0 clamp(24px, 6vw, 72px); }
+  .hero { position: relative; overflow: hidden; min-height: 72vh; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(24px, 5vw, 60px); align-items: center; padding: 90px clamp(24px, 6vw, 72px); }
+  .hero-content { display: flex; flex-direction: column; align-items: flex-start; }
   .hero-glow { position: absolute; z-index: -1; border-radius: 50%; filter: blur(70px); pointer-events: none; }
   .hero-glow-1 { width: 460px; height: 460px; top: -140px; right: 6%; background: radial-gradient(circle, rgba(176,141,87,0.24), transparent 70%); animation: glow-drift-1 17s ease-in-out infinite; }
   .hero-glow-2 { width: 340px; height: 340px; bottom: -120px; left: 2%; background: radial-gradient(circle, rgba(176,141,87,0.15), transparent 70%); animation: glow-drift-2 21s ease-in-out infinite; }
@@ -96,11 +105,11 @@
   .eyebrow-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--gold-bright); margin-right: 9px; box-shadow: 0 0 6px 1px rgba(201,164,107,0.7); animation: eyebrow-pulse 2s ease-in-out infinite; vertical-align: middle; }
   @keyframes eyebrow-pulse { 0%, 100% { opacity: 0.6; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.15); } }
   .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; margin: 0 0 18px; opacity: 0; animation: fade-up 0.6s ease forwards; animation-delay: 0.1s; }
-  .headline { font-family: var(--display); font-weight: 600; font-size: clamp(2.4rem, 6vw, 4.6rem); line-height: 1.06; margin: 0; max-width: 880px; letter-spacing: -0.01em; }
+  .headline { font-family: var(--display); font-weight: 600; font-size: clamp(2.2rem, 4.4vw, 3.8rem); line-height: 1.08; margin: 0; letter-spacing: -0.01em; }
   .headline .line { display: block; overflow: hidden; }
   .headline .line span { display: inline-block; transform: translateY(100%); opacity: 0; filter: blur(6px); animation: rise-clear 0.75s cubic-bezier(.2,.7,.2,1) forwards; }
   @keyframes rise-clear { to { transform: translateY(0); opacity: 1; filter: blur(0); } }
-  .subhead { font-size: clamp(1rem, 1.5vw, 1.15rem); color: var(--muted); max-width: 540px; margin: 26px 0 36px; line-height: 1.6; opacity: 0; animation: fade-up 0.7s ease forwards; animation-delay: 1.15s; }
+  .subhead { font-size: clamp(1rem, 1.5vw, 1.15rem); color: var(--muted); max-width: 480px; margin: 26px 0 36px; line-height: 1.6; opacity: 0; animation: fade-up 0.7s ease forwards; animation-delay: 1.15s; }
   @keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
   .hero-actions { display: flex; gap: 14px; opacity: 0; animation: fade-up 0.7s ease forwards; animation-delay: 1.35s; }
   .hero-actions .btn.solid { animation: cta-breathe 3.4s ease-in-out 2.1s infinite; }
@@ -109,15 +118,101 @@
     50% { box-shadow: 0 0 0 8px rgba(201,164,107,0); }
   }
 
-  .channels { padding: 60px clamp(24px, 6vw, 72px) 110px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
-  .channel { background: var(--onyx); padding: 34px 30px; opacity: 0; transform: translateY(20px); transition: background 0.3s ease; }
+  /* ---------- Hero visual panel ---------- */
+  .hero-visual { position: relative; opacity: 0; animation: fade-up 0.8s ease forwards; animation-delay: 0.6s; }
+  .hero-panel { position: relative; background: rgba(16,18,21,0.6); border: 1px solid var(--line); backdrop-filter: blur(6px); padding: 30px; transition: transform 0.3s ease-out; transform-style: preserve-3d; will-change: transform; }
+  .hero-panel::before { content: ''; position: absolute; top: -1px; left: -1px; width: 26px; height: 26px; border-top: 1px solid var(--gold); border-left: 1px solid var(--gold); }
+  .hero-panel::after { content: ''; position: absolute; bottom: -1px; right: -1px; width: 26px; height: 26px; border-bottom: 1px solid var(--gold); border-right: 1px solid var(--gold); }
+  .hero-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .hero-panel-head span { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; }
+  .hero-panel-live { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 0.68rem; color: var(--gold-bright); letter-spacing: 0.1em; }
+  .hero-panel-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 6px 1px rgba(201,164,107,0.7); animation: eyebrow-pulse 2s ease-in-out infinite; }
+  .hero-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 18px; }
+  .hero-stat { border-top: 1px solid var(--line); padding-top: 14px; }
+  .hero-stat .num { display: block; font-family: var(--display); font-size: clamp(1.5rem, 2.4vw, 2rem); font-weight: 700; color: var(--platinum); line-height: 1; }
+  .hero-stat .num .unit { font-size: 0.6em; color: var(--gold); margin-left: 2px; }
+  .hero-stat .lbl { display: block; margin-top: 6px; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+  .hero-panel-foot { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.7rem; color: var(--muted); letter-spacing: 0.04em; line-height: 1.7; }
+  .hero-panel-foot b { color: var(--platinum); font-weight: 500; }
+
+  .hero-uptime { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .hero-uptime-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; }
+  .hero-uptime-head span:first-child { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+  .hero-uptime-head span:last-child { font-family: var(--mono); font-size: 0.72rem; color: var(--gold-bright); }
+  .hero-uptime-track { position: relative; height: 4px; background: rgba(200,205,212,0.08); overflow: hidden; }
+  .hero-uptime-fill { position: absolute; inset: 0; width: 99.98%; background: linear-gradient(90deg, var(--gold), var(--gold-bright)); animation: uptime-shimmer 3s ease-in-out infinite; }
+  @keyframes uptime-shimmer { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+
+  .hero-feed { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 13px; }
+  .hero-feed-item { display: flex; align-items: flex-start; gap: 10px; }
+  .hero-feed-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold-bright); margin-top: 6px; flex-shrink: 0; box-shadow: 0 0 5px 1px rgba(201,164,107,0.5); }
+  .hero-feed-text { font-size: 0.8rem; color: var(--platinum); line-height: 1.4; }
+  .hero-feed-text .muted-time { display: block; font-family: var(--mono); font-size: 0.65rem; color: var(--muted); letter-spacing: 0.06em; margin-top: 2px; text-transform: uppercase; }
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; padding-top: 60px; }
+    .hero-visual { order: 2; width: 100%; }
+    .hero-content { order: 1; }
+  }
+
+  .channels { padding: 70px clamp(24px, 6vw, 72px) 120px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .channel { background: var(--onyx); padding: 38px 32px; opacity: 0; transform: translateY(20px); transition: background 0.3s ease, transform 0.35s cubic-bezier(.2,.7,.2,1); position: relative; overflow: hidden; }
+  .channel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--gold), var(--gold-bright)); transform: scaleX(0); transform-origin: left; transition: transform 0.4s cubic-bezier(.2,.7,.2,1); }
   .channel.visible { animation: fade-up 0.6s ease forwards; }
-  .channel:hover { background: var(--graphite); }
+  .channel:hover { background: var(--graphite); transform: translateY(-3px); }
+  .channel:hover::before { transform: scaleX(1); }
+  .channel-icon { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+  .channel:hover .channel-icon { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(176,141,87,0.08); }
+  .channel-icon svg { width: 19px; height: 19px; stroke: var(--gold-bright); fill: none; stroke-width: 1.4; }
   .channel .idx { font-family: var(--mono); font-size: 0.75rem; color: var(--gold); letter-spacing: 0.1em; display: block; margin-bottom: 14px; }
   .channel h3 { font-family: var(--display); font-size: 1.2rem; font-weight: 600; margin: 0 0 10px; color: var(--platinum); }
-  .channel p { font-size: 0.92rem; color: var(--muted); line-height: 1.6; margin: 0; }
+  .channel p { font-size: 0.92rem; color: var(--muted); line-height: 1.65; margin: 0; }
 
   footer { padding: 26px clamp(24px, 6vw, 72px) 40px; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; color: var(--muted); border-top: 1px solid var(--line); }
+
+  /* ---------- Section heading (shared) ---------- */
+  .section-head { max-width: 1200px; margin: 0 auto; padding: 0 clamp(24px, 6vw, 72px); }
+  .section-head .section-eyebrow, .section-head .section-title, .section-head .section-sub { opacity: 0; transform: translateY(16px); }
+  .section-head.visible .section-eyebrow { animation: fade-up 0.6s ease forwards; }
+  .section-head.visible .section-title { animation: fade-up 0.6s ease forwards; animation-delay: 0.08s; }
+  .section-head.visible .section-sub { animation: fade-up 0.6s ease forwards; animation-delay: 0.16s; }
+  .section-eyebrow { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.18em; color: var(--gold); text-transform: uppercase; margin: 0 0 12px; display: flex; align-items: center; }
+  .section-eyebrow::before { content: ''; display: inline-block; width: 16px; height: 1px; background: var(--gold); margin-right: 10px; }
+  .section-title { font-family: var(--display); font-weight: 600; font-size: clamp(1.5rem, 2.6vw, 2.1rem); color: var(--platinum); margin: 0 0 10px; letter-spacing: -0.01em; }
+  .section-sub { font-size: 0.95rem; color: var(--muted); max-width: 520px; line-height: 1.65; margin: 0; }
+
+  @keyframes icon-breathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(176,141,87,0); } 50% { box-shadow: 0 0 0 5px rgba(176,141,87,0.06); } }
+  .channel-icon, .security-icon { animation: icon-breathe 3.6s ease-in-out infinite; }
+  .channel:nth-child(2) .channel-icon, .security-item:nth-child(2) .security-icon { animation-delay: 0.5s; }
+  .channel:nth-child(3) .channel-icon, .security-item:nth-child(3) .security-icon { animation-delay: 1s; }
+  .security-item:nth-child(4) .security-icon { animation-delay: 1.5s; }
+
+  /* ---------- Access protocol (steps) ---------- */
+  .protocol { padding: 130px clamp(24px, 6vw, 72px); max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--line); }
+  .protocol-steps { margin-top: 60px; display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(28px, 4vw, 56px); position: relative; }
+  .protocol-steps::before { content: ''; position: absolute; top: 21px; left: 8%; right: 8%; height: 1px; background: var(--line); z-index: 0; }
+  .protocol-step { position: relative; z-index: 1; opacity: 0; transform: translateY(20px); padding: 4px 4px 0; transition: transform 0.35s cubic-bezier(.2,.7,.2,1); }
+  .protocol-step.visible { animation: fade-up 0.6s ease forwards; }
+  .protocol-step:hover { transform: translateY(-3px); }
+  .protocol-num { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: var(--onyx); border: 1px solid var(--gold); color: var(--gold-bright); font-family: var(--mono); font-size: 0.85rem; margin-bottom: 26px; transition: box-shadow 0.3s ease; }
+  .protocol-step:hover .protocol-num { box-shadow: 0 0 0 5px rgba(176,141,87,0.1); }
+  .protocol-step h3 { font-family: var(--display); font-size: 1.12rem; font-weight: 600; color: var(--platinum); margin: 0 0 10px; }
+  .protocol-step p { font-size: 0.9rem; color: var(--muted); line-height: 1.65; margin: 0; }
+  @media (max-width: 760px) {
+    .protocol-steps { grid-template-columns: 1fr; gap: 36px; }
+    .protocol-steps::before { display: none; }
+  }
+
+  /* ---------- Security / confidentiality ---------- */
+  .security { padding: 20px clamp(24px, 6vw, 72px) 130px; max-width: 1200px; margin: 0 auto; }
+  .security-grid { margin-top: 60px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .security-item { background: var(--onyx); padding: 32px 28px; opacity: 0; transform: translateY(20px); transition: background 0.3s ease, transform 0.35s cubic-bezier(.2,.7,.2,1); }
+  .security-item.visible { animation: fade-up 0.6s ease forwards; }
+  .security-item:hover { background: var(--graphite); transform: translateY(-3px); }
+  .security-icon { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+  .security-item:hover .security-icon { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(176,141,87,0.08); }
+  .security-icon svg { width: 19px; height: 19px; stroke: var(--gold-bright); fill: none; stroke-width: 1.4; }
+  .security-item h4 { font-family: var(--display); font-size: 1rem; font-weight: 600; color: var(--platinum); margin: 0 0 8px; }
+  .security-item p { font-size: 0.86rem; color: var(--muted); line-height: 1.65; margin: 0; }
 
   /* ---------- Overlays / panels ---------- */
   .overlay { position: fixed; inset: 0; z-index: 50; display: flex; justify-content: center; align-items: center; background: rgba(6,7,9,0); pointer-events: none; transition: background 0.4s ease; }
@@ -264,6 +359,7 @@
 <div id="signal-cursor"><div class="signal-ring"></div><div class="signal-dot"></div></div>
 <div class="backdrop"></div>
 <div class="grid-lines"></div>
+<div id="cursor-glow"></div>
 
 <div class="ticker"><div class="ticker-track" id="ticker-track"></div></div>
 
@@ -279,7 +375,6 @@
   </div>
   <div class="header-actions">
     <button class="btn-ghost" id="open-president">President Access</button>
-    <button class="btn" id="open-signin">Sign in</button>
   </div>
 </header>
 
@@ -287,18 +382,95 @@
   <section class="hero">
     <div class="hero-glow hero-glow-1"></div>
     <div class="hero-glow hero-glow-2"></div>
-    <p class="eyebrow"><span class="eyebrow-dot"></span>Verified network · By invitation only</p>
-    <h1 class="headline" id="headline"></h1>
-    <p class="subhead">DEML Executive Channel connects verified leaders for real-time briefings, direct conversation, and President-hosted meetings — no public feed, no delay, no noise.</p>
-    <div class="hero-actions">
-      <button class="btn solid" id="open-signin-2">Sign in</button>
+    <div class="hero-content">
+      <p class="eyebrow"><span class="eyebrow-dot"></span>Verified network · By invitation only</p>
+      <h1 class="headline" id="headline"></h1>
+      <p class="subhead">DEML Executive Channel connects verified leaders for real-time briefings, direct conversation, and President-hosted meetings — no public feed, no delay, no noise.</p>
+      <div class="hero-actions">
+        <button class="btn solid" id="open-signin-2">Sign in</button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-panel">
+        <div class="hero-panel-head">
+          <span>Channel status</span>
+          <span class="hero-panel-live">Live</span>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><span class="num">1<span class="unit">of 1</span></span><span class="lbl">President</span></div>
+          <div class="hero-stat"><span class="num">10<span class="unit">max</span></span><span class="lbl">Per meeting</span></div>
+          <div class="hero-stat"><span class="num">0<span class="unit">ms</span></span><span class="lbl">Public delay</span></div>
+          <div class="hero-stat"><span class="num">24<span class="unit">/7</span></span><span class="lbl">Access window</span></div>
+          <div class="hero-stat"><span class="num">100<span class="unit">%</span></span><span class="lbl">Invite-only</span></div>
+          <div class="hero-stat"><span class="num">0<span class="unit">public</span></span><span class="lbl">Feed entries</span></div>
+        </div>
+        <div class="hero-uptime">
+          <div class="hero-uptime-head"><span>Channel uptime</span><span>99.98%</span></div>
+          <div class="hero-uptime-track"><div class="hero-uptime-fill"></div></div>
+        </div>
+        <div class="hero-feed">
+          <div class="hero-feed-item"><span class="hero-feed-dot"></span><span class="hero-feed-text">President-hosted meeting concluded<span class="muted-time">Encrypted · Internal only</span></span></div>
+          <div class="hero-feed-item"><span class="hero-feed-dot"></span><span class="hero-feed-text">New executive account provisioned<span class="muted-time">Encrypted · Internal only</span></span></div>
+          <div class="hero-feed-item"><span class="hero-feed-dot"></span><span class="hero-feed-text">Direct briefing delivered<span class="muted-time">Encrypted · Internal only</span></span></div>
+        </div>
+        <p class="hero-panel-foot">Every executive account is <b>issued by invitation</b>. Messages, meetings, and tasks stay inside the channel — nothing is public.</p>
+      </div>
     </div>
   </section>
 
   <section class="channels">
-    <div class="channel"><span class="idx">01 — MESSAGES</span><h3>Real-time conversation</h3><p>Direct or group messages, delivered instantly with delivery and read indicators, plus voice and video calls.</p></div>
-    <div class="channel"><span class="idx">02 — MEETINGS</span><h3>President-hosted rooms</h3><p>Live meetings hosted exclusively by the President, capped at ten participants.</p></div>
-    <div class="channel"><span class="idx">03 — PROFILE &amp; TASKS</span><h3>Your own space</h3><p>A profile with your bio and links, and a private to-do list only you can see.</p></div>
+    <div class="channel">
+      <div class="channel-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4V5z"/></svg></div>
+      <span class="idx">01 — MESSAGES</span><h3>Real-time conversation</h3><p>Direct or group messages, delivered instantly with delivery and read indicators, plus voice and video calls.</p></div>
+    <div class="channel">
+      <div class="channel-icon"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="1"/><path d="M16 10l5-3v10l-5-3"/></svg></div>
+      <span class="idx">02 — MEETINGS</span><h3>President-hosted rooms</h3><p>Live meetings hosted exclusively by the President, capped at ten participants.</p></div>
+    <div class="channel">
+      <div class="channel-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg></div>
+      <span class="idx">03 — PROFILE &amp; TASKS</span><h3>Your own space</h3><p>A profile with your bio and links, and a private to-do list only you can see.</p></div>
+  </section>
+
+  <section class="protocol">
+    <div class="section-head">
+      <p class="section-eyebrow">Access protocol</p>
+      <h2 class="section-title">How the channel works</h2>
+      <p class="section-sub">There is no open sign-up. Every account traces back to a single point of issuance.</p>
+    </div>
+    <div class="protocol-steps">
+      <div class="protocol-step"><span class="protocol-num">01</span><h3>President issues access</h3><p>The President creates and manages every executive account from the "Manage Executives" tab — no self-registration, ever.</p></div>
+      <div class="protocol-step"><span class="protocol-num">02</span><h3>Executive signs in</h3><p>Credentials are handed to the executive directly. Signing in unlocks messages, meetings, profile, and tasks.</p></div>
+      <div class="protocol-step"><span class="protocol-num">03</span><h3>Channel stays closed</h3><p>Nothing is indexed, listed, or discoverable outside the channel. Access ends the moment the President revokes it.</p></div>
+    </div>
+  </section>
+
+  <section class="security">
+    <div class="section-head">
+      <p class="section-eyebrow">Built for confidentiality</p>
+      <h2 class="section-title">Nothing leaves the room</h2>
+      <p class="section-sub">The channel is designed around one principle: only verified executives ever see what happens inside it.</p>
+    </div>
+    <div class="security-grid">
+      <div class="security-item">
+        <div class="security-icon"><svg viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg></div>
+        <h4>Invitation-only access</h4>
+        <p>Accounts exist only if the President creates them. There is no public sign-up path.</p>
+      </div>
+      <div class="security-item">
+        <div class="security-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></div>
+        <h4>Direct-only messaging</h4>
+        <p>Conversations are addressed to specific participants — no shared feeds, no broadcast channels.</p>
+      </div>
+      <div class="security-item">
+        <div class="security-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+        <h4>Capped, hosted meetings</h4>
+        <p>Meetings are limited to ten participants and can only be hosted by the President.</p>
+      </div>
+      <div class="security-item">
+        <div class="security-icon"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="1"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+        <h4>Revocable at any time</h4>
+        <p>The President can remove an executive account instantly, cutting off all access in one action.</p>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -483,6 +655,7 @@
   </div>
 </div>
 
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
 
@@ -510,7 +683,7 @@ function beep(freq, duration, vol) {
   } catch (e) {}
 }
 
-// ---------- Ambient space-dust background ----------
+// ---------- Ambient constellation + drifting geometry background ----------
 (function initSpaceBackground() {
   const canvas = document.getElementById('space-bg');
   if (!canvas || !canvas.getContext) return;
@@ -527,27 +700,26 @@ function beep(freq, duration, vol) {
     canvas.style.width = w + 'px';
     canvas.style.height = h + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    rebuildShapes();
   }
-  resize();
-  window.addEventListener('resize', resize);
 
   const GOLD = [201, 164, 107];
   const PLATINUM = [200, 205, 212];
-  const COUNT = Math.max(40, Math.min(150, Math.floor((window.innerWidth * window.innerHeight) / 9000)));
+
+  // ---------- Particle nodes (linked into a faint constellation) ----------
+  const COUNT = Math.max(36, Math.min(110, Math.floor((window.innerWidth * window.innerHeight) / 11000)));
+  const LINK_DIST = 130;
 
   function makeParticle() {
     return {
       x: Math.random() * w,
       y: Math.random() * h,
-      radius: 0.6 + Math.random() * 1.7,
-      baseAlpha: 0.18 + Math.random() * 0.42,
+      radius: 0.9 + Math.random() * 1.8,
+      baseAlpha: 0.25 + Math.random() * 0.45,
       color: Math.random() < 0.6 ? GOLD : PLATINUM,
       angle: Math.random() * Math.PI * 2,
-      angleSpeed: (Math.random() - 0.5) * 0.0007,
-      // Each particle has its own baseline speed AND its own rhythm for
-      // speeding up / slowing down over time, so motion feels organic
-      // rather than a single uniform drift.
-      baseSpeed: 0.04 + Math.random() * 0.4,
+      angleSpeed: (Math.random() - 0.5) * 0.001,
+      baseSpeed: 0.06 + Math.random() * 0.32,
       speedFreq: 0.0004 + Math.random() * 0.0018,
       speedPhase: Math.random() * Math.PI * 2,
       twinkleFreq: 0.0008 + Math.random() * 0.0026,
@@ -557,20 +729,109 @@ function beep(freq, duration, vol) {
   const particles = [];
   for (let i = 0; i < COUNT; i++) particles.push(makeParticle());
 
+  // ---------- Large slow-rotating outline shapes (polygon / ring / arc) ----------
+  let shapes = [];
+  function rebuildShapes() {
+    const kinds = ['ring', 'hex', 'triangle', 'arc'];
+    const n = w < 700 ? 3 : 5;
+    shapes = Array.from({ length: n }, (_, i) => ({
+      kind: kinds[i % kinds.length],
+      x: Math.random() * w,
+      y: Math.random() * h,
+      size: 90 + Math.random() * 180,
+      rotation: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.00025,
+      driftAngle: Math.random() * Math.PI * 2,
+      driftSpeed: 0.015 + Math.random() * 0.05,
+      alpha: 0.05 + Math.random() * 0.08,
+    }));
+  }
+
+  function drawShape(s) {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rotation);
+    ctx.strokeStyle = `rgba(${GOLD[0]}, ${GOLD[1]}, ${GOLD[2]}, ${s.alpha.toFixed(3)})`;
+    ctx.lineWidth = 1;
+    const r = s.size / 2;
+    ctx.beginPath();
+    if (s.kind === 'ring') {
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+    } else if (s.kind === 'hex') {
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i;
+        const px = Math.cos(a) * r, py = Math.sin(a) * r;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    } else if (s.kind === 'triangle') {
+      for (let i = 0; i < 3; i++) {
+        const a = (Math.PI * 2 / 3) * i - Math.PI / 2;
+        const px = Math.cos(a) * r, py = Math.sin(a) * r;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    } else if (s.kind === 'arc') {
+      ctx.arc(0, 0, r, 0, Math.PI * 1.4);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+
   function step(t) {
     ctx.clearRect(0, 0, w, h);
+
+    // drifting geometric shapes, behind everything else
+    for (const s of shapes) {
+      s.rotation += s.rotSpeed;
+      s.x += Math.cos(s.driftAngle) * s.driftSpeed;
+      s.y += Math.sin(s.driftAngle) * s.driftSpeed;
+      const pad = s.size;
+      if (s.x < -pad) s.x = w + pad;
+      if (s.x > w + pad) s.x = -pad;
+      if (s.y < -pad) s.y = h + pad;
+      if (s.y > h + pad) s.y = -pad;
+      drawShape(s);
+    }
+
+    // move particles
     for (const p of particles) {
       const speedWave = 0.35 + 0.95 * (0.5 + 0.5 * Math.sin(t * p.speedFreq + p.speedPhase));
-      const speed = p.baseSpeed * speedWave; // oscillates: sometimes slow, sometimes fast
+      const speed = p.baseSpeed * speedWave;
       p.angle += p.angleSpeed;
       p.x += Math.cos(p.angle) * speed;
-      p.y += Math.sin(p.angle) * speed - speed * 0.18; // gentle upward drift, like zero-gravity dust
+      p.y += Math.sin(p.angle) * speed - speed * 0.18;
 
       if (p.x < -12) p.x = w + 12;
       if (p.x > w + 12) p.x = -12;
       if (p.y < -12) p.y = h + 12;
       if (p.y > h + 12) p.y = -12;
+    }
 
+    // constellation links between nearby particles
+    for (let i = 0; i < particles.length; i++) {
+      const a = particles[i];
+      for (let j = i + 1; j < particles.length; j++) {
+        const b = particles[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < LINK_DIST) {
+          const lineAlpha = (1 - dist / LINK_DIST) * 0.12;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = `rgba(${GOLD[0]}, ${GOLD[1]}, ${GOLD[2]}, ${lineAlpha.toFixed(3)})`;
+          ctx.lineWidth = 0.6;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // draw particle dots on top of links
+    for (const p of particles) {
       const twinkle = 0.5 + 0.5 * Math.sin(t * p.twinkleFreq + p.twinklePhase);
       const alpha = p.baseAlpha * (0.45 + 0.55 * twinkle);
       ctx.beginPath();
@@ -578,6 +839,7 @@ function beep(freq, duration, vol) {
       ctx.fillStyle = `rgba(${p.color[0]}, ${p.color[1]}, ${p.color[2]}, ${alpha.toFixed(3)})`;
       ctx.fill();
     }
+
     requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -616,331 +878,238 @@ const chObserver = new IntersectionObserver((entries) => {
 }, { threshold: 0.2 });
 channels.forEach(c => chObserver.observe(c));
 
-// =========================================================================
-// Local data store — everything lives in this browser (localStorage).
-// There is no backend server: all "API" calls below read/write a single
-// JSON blob in localStorage, so accounts, passwords, messages, etc. persist
-// across reloads on this device/browser only.
-// =========================================================================
-const DB_KEY = 'deml_channel_db_v1';
-const MAX_MEETING_PARTICIPANTS = 10;
+const revealGroups = [document.querySelectorAll('.protocol-step'), document.querySelectorAll('.security-item')];
+revealGroups.forEach((group) => {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((entry, idx) => {
+      if (entry.isIntersecting) {
+        entry.target.style.animationDelay = (idx * 0.1) + 's';
+        entry.target.classList.add('visible');
+        obs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.2 });
+  group.forEach(el => obs.observe(el));
+});
 
-function readDB() {
-  let db = null;
-  try { db = JSON.parse(localStorage.getItem(DB_KEY)); } catch (e) { db = null; }
-  if (!db || !db.users || !db.users.length) {
-    db = {
-      users: [{
-        id: 'u_president',
-        username: 'president',
-        password: '4254224524NASA$', // permanent default — only the President can change this, from Profile
-        role: 'PRESIDENT',
-        designation: 'President',
-        displayName: 'President',
-        avatarUrl: '',
-        bio: '',
-        socialLinks: []
-      }],
-      todos: {},
-      conversations: [],
-      messages: [],
-      meetings: [],
-      passwordRequests: []
-    };
-    writeDB(db);
+const sectionHeads = document.querySelectorAll('.section-head');
+const headObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      headObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.3 });
+sectionHeads.forEach(el => headObserver.observe(el));
+
+// ---------- Hero panel: subtle mouse-tilt parallax ----------
+(function heroTilt() {
+  const panel = document.querySelector('.hero-panel');
+  const visual = document.querySelector('.hero-visual');
+  if (!panel || !visual) return;
+  if (window.matchMedia && window.matchMedia('(hover: none)').matches) return;
+  visual.addEventListener('mousemove', (e) => {
+    const rect = visual.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    panel.style.transform = `perspective(900px) rotateY(${px * 6}deg) rotateX(${-py * 6}deg) translateZ(0)`;
+  });
+  visual.addEventListener('mouseleave', () => {
+    panel.style.transform = 'perspective(900px) rotateY(0) rotateX(0)';
+  });
+})();
+
+// ---------- Hero stats: count up when panel scrolls into view ----------
+(function heroStatCountUp() {
+  const nums = document.querySelectorAll('.hero-stat .num');
+  if (!nums.length) return;
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      obs.unobserve(entry.target);
+      const el = entry.target;
+      const unitEl = el.querySelector('.unit');
+      const unitText = unitEl ? unitEl.outerHTML : '';
+      const target = parseInt(el.textContent, 10);
+      if (isNaN(target)) return;
+      const duration = 900;
+      const start = performance.now();
+      function frame(now) {
+        const p = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.innerHTML = Math.round(target * eased) + unitText;
+        if (p < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    });
+  }, { threshold: 0.5 });
+  nums.forEach(el => obs.observe(el));
+})();
+
+// ---------- Cursor glow that follows the pointer across the page ----------
+(function cursorGlow() {
+  const glow = document.getElementById('cursor-glow');
+  if (!glow || (window.matchMedia && window.matchMedia('(hover: none)').matches)) return;
+  let shown = false;
+  window.addEventListener('mousemove', (e) => {
+    glow.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    if (!shown) { glow.style.opacity = '1'; shown = true; }
+  });
+  document.addEventListener('mouseleave', () => { glow.style.opacity = '0'; shown = false; });
+})();
+
+// ---------- Magnetic pull on solid buttons ----------
+(function magneticButtons() {
+  if (window.matchMedia && window.matchMedia('(hover: none)').matches) return;
+  document.querySelectorAll('.btn.solid').forEach((btn) => {
+    btn.addEventListener('mousemove', (e) => {
+      const r = btn.getBoundingClientRect();
+      const x = e.clientX - r.left - r.width / 2;
+      const y = e.clientY - r.top - r.height / 2;
+      btn.style.transform = `translate(${x * 0.18}px, ${y * 0.35 - 1}px)`;
+    });
+    btn.addEventListener('mouseleave', () => { btn.style.transform = ''; });
+  });
+})();
+
+// ---------- Click ripple feedback on all buttons ----------
+(function buttonRipples() {
+  document.querySelectorAll('.btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const r = btn.getBoundingClientRect();
+      const size = Math.max(r.width, r.height) * 1.6;
+      const ripple = document.createElement('span');
+      ripple.className = 'btn-ripple';
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = (e.clientX - r.left - size / 2) + 'px';
+      ripple.style.top = (e.clientY - r.top - size / 2) + 'px';
+      btn.appendChild(ripple);
+      ripple.addEventListener('animationend', () => ripple.remove());
+    });
+  });
+})();
+
+// ---------- Scroll parallax on hero content/visual ----------
+(function heroScrollParallax() {
+  const content = document.querySelector('.hero-content');
+  const visual = document.querySelector('.hero-visual');
+  if (!content || !visual) return;
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    content.style.transform = `translateY(${y * -0.06}px)`;
+    visual.style.transform = `translateY(${y * -0.1}px)`;
+  }, { passive: true });
+})();
+
+// =========================================================================
+// API client — talks to the real DEML Executive Channel backend (server.js)
+// over REST + Socket.IO. Nothing is stored in this browser except the
+// session token; every user's data lives server-side and the server only
+// ever returns another user's bio/avatar/links to that user themself.
+// =========================================================================
+const API_BASE = (() => {
+  // Same-origin when this page is served BY the backend itself (the normal
+  // Render deployment, or `node server.js` serving /public). Falls back to
+  // localhost:4000 if this file is opened directly (file://) during local
+  // development without the server serving it.
+  if (location.protocol === 'file:') return 'http://localhost:4000';
+  return '';
+})();
+
+const TOKEN_KEY = 'deml_auth_token';
+let authToken = null;
+try { authToken = sessionStorage.getItem(TOKEN_KEY); } catch (e) {}
+
+function setAuthToken(token) {
+  authToken = token;
+  try { token ? sessionStorage.setItem(TOKEN_KEY, token) : sessionStorage.removeItem(TOKEN_KEY); } catch (e) {}
+}
+
+async function apiFetch(path, options) {
+  options = options || {};
+  const headers = Object.assign({}, options.headers || {});
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+  let res;
+  try {
+    res = await fetch(API_BASE + path, {
+      method: options.method || 'GET',
+      headers,
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    });
+  } catch (e) {
+    throw new Error('Could not reach the server. Check your connection and try again.');
   }
-  db.todos = db.todos || {};
-  db.conversations = db.conversations || [];
-  db.messages = db.messages || [];
-  db.meetings = db.meetings || [];
-  db.passwordRequests = db.passwordRequests || [];
-  return db;
+  if (res.status === 204) return null;
+  let data = null;
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error((data && data.error) || ('Request failed (' + res.status + ').'));
+  return data;
 }
-function writeDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+
 function uid(prefix) { return (prefix || 'id') + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
-function publicUser(u) {
-  if (!u) return null;
-  return { id: u.id, username: u.username, role: u.role, designation: u.designation, displayName: u.displayName, avatarUrl: u.avatarUrl };
-}
 
 // ---------- Auth ----------
-function dbLogin(username, password) {
-  const db = readDB();
-  const user = db.users.find(u => u.username.toLowerCase() === String(username || '').toLowerCase().trim());
-  if (!user || user.password !== password) throw new Error('Invalid username or password.');
-  return user;
+async function dbLogin(username, password) {
+  const data = await apiFetch('/api/auth/login', { method: 'POST', body: { username, password } });
+  setAuthToken(data.token);
+  return data.user;
 }
+function dbLogout() { setAuthToken(null); }
 
 // ---------- Executives ----------
-function dbGetExecutives() { return readDB().users.map(publicUser); }
+function dbGetExecutives() { return apiFetch('/api/executives'); }
 function dbCreateExecutive({ username, designation, password }) {
-  const db = readDB();
-  username = (username || '').trim(); designation = (designation || '').trim();
-  if (!username || !designation || !password) throw new Error('All fields are required.');
-  if (db.users.some(u => u.username.toLowerCase() === username.toLowerCase())) throw new Error('That username is already taken.');
-  const user = { id: uid('u'), username, password, role: 'EXEC', designation, displayName: username, avatarUrl: '', bio: '', socialLinks: [] };
-  db.users.push(user);
-  writeDB(db);
-  return publicUser(user);
+  return apiFetch('/api/executives', { method: 'POST', body: { username, designation, password } });
 }
-function dbRemoveExecutive(id) {
-  const db = readDB();
-  const user = db.users.find(u => u.id === id);
-  if (!user) throw new Error('Executive not found.');
-  if (user.role === 'PRESIDENT') throw new Error('The President account cannot be removed.');
-  db.users = db.users.filter(u => u.id !== id);
-  db.passwordRequests = db.passwordRequests.filter(r => r.userId !== id);
-  db.conversations.forEach(c => { c.participantIds = c.participantIds.filter(pid => pid !== id); });
-  db.meetings.forEach(m => { m.participantIds = m.participantIds.filter(pid => pid !== id); });
-  writeDB(db);
-}
+function dbRemoveExecutive(id) { return apiFetch('/api/executives/' + id, { method: 'DELETE' }); }
 
-// ---------- Profile ----------
-function dbGetProfile(userId) {
-  const u = readDB().users.find(x => x.id === userId);
-  if (!u) throw new Error('User not found.');
-  return { bio: u.bio || '', avatarUrl: u.avatarUrl || '', socialLinks: u.socialLinks || [] };
-}
-function dbUpdateProfile(userId, patch) {
-  const db = readDB();
-  const u = db.users.find(x => x.id === userId);
-  if (!u) throw new Error('User not found.');
-  if (patch.bio !== undefined) u.bio = patch.bio;
-  if (patch.socialLinks !== undefined) u.socialLinks = patch.socialLinks;
-  if (patch.avatarUrl !== undefined) u.avatarUrl = patch.avatarUrl;
-  writeDB(db);
-  return { avatarUrl: u.avatarUrl };
-}
+// ---------- Profile (bio/avatar/links are only ever sent to their owner) ----------
+function dbGetProfile() { return apiFetch('/api/profile/me'); }
+function dbUpdateProfile(patch) { return apiFetch('/api/profile/me', { method: 'PATCH', body: patch }); }
 
 // ---------- Passwords ----------
-// The President's password (and every executive's password) is permanent —
-// it never expires and never changes on its own. The President can update
-// their own password from Profile at any time. Executives cannot edit their
-// password directly; they submit a request the President must approve
-// (which sets it permanently) or deny. Every request is stored.
-function dbChangeOwnPassword(userId, currentPassword, newPassword) {
-  const db = readDB();
-  const u = db.users.find(x => x.id === userId);
-  if (!u) throw new Error('User not found.');
-  if (u.role !== 'PRESIDENT') throw new Error('Only the President can change a password directly. Submit a request instead.');
-  if (u.password !== currentPassword) throw new Error('Current password is incorrect.');
-  if (!newPassword || newPassword.length < 4) throw new Error('New password must be at least 4 characters.');
-  u.password = newPassword;
-  writeDB(db);
+function dbChangeOwnPassword(currentPassword, newPassword) {
+  return apiFetch('/api/auth/password', { method: 'PATCH', body: { currentPassword, newPassword } });
 }
-function dbRequestPasswordChange(userId, newPassword, note) {
-  const db = readDB();
-  const u = db.users.find(x => x.id === userId);
-  if (!u) throw new Error('User not found.');
-  if (!newPassword || newPassword.length < 4) throw new Error('New password must be at least 4 characters.');
-  if (db.passwordRequests.some(r => r.userId === userId && r.status === 'pending')) throw new Error('You already have a pending request.');
-  const req = { id: uid('pr'), userId, newPassword, note: (note || '').trim(), status: 'pending', createdAt: Date.now(), resolvedAt: null };
-  db.passwordRequests.push(req);
-  writeDB(db);
-  return req;
+function dbRequestPasswordChange(newPassword, note) {
+  return apiFetch('/api/password-requests', { method: 'POST', body: { newPassword, note } });
 }
-function dbGetPasswordRequests() {
-  const db = readDB();
-  return db.passwordRequests.slice().sort((a, b) => b.createdAt - a.createdAt)
-    .map(r => Object.assign({}, r, { user: publicUser(db.users.find(u => u.id === r.userId)) }));
-}
-function dbGetMyPasswordRequests(userId) { return dbGetPasswordRequests().filter(r => r.userId === userId); }
+// The server scopes this by role: President gets every request, an
+// executive gets only their own — so both call sites use this one function.
+function dbGetPasswordRequests() { return apiFetch('/api/password-requests'); }
 function dbResolvePasswordRequest(requestId, action) {
-  const db = readDB();
-  const req = db.passwordRequests.find(r => r.id === requestId);
-  if (!req) throw new Error('Request not found.');
-  if (req.status !== 'pending') throw new Error('This request was already resolved.');
-  if (action === 'approve') {
-    const u = db.users.find(x => x.id === req.userId);
-    if (!u) throw new Error('User not found.');
-    u.password = req.newPassword; // permanent, until the President or another approved request changes it again
-    req.status = 'approved';
-  } else {
-    req.status = 'denied';
-  }
-  req.resolvedAt = Date.now();
-  writeDB(db);
-  return req;
+  return apiFetch('/api/password-requests/' + requestId + '/resolve', { method: 'POST', body: { action } });
 }
 
 // ---------- To-Do ----------
-function dbGetTodos(userId) { return (readDB().todos[userId] || []).slice(); }
-function dbAddTodo(userId, content) {
-  const db = readDB();
-  db.todos[userId] = db.todos[userId] || [];
-  const todo = { id: uid('t'), content, done: false };
-  db.todos[userId].push(todo);
-  writeDB(db);
-  return todo;
-}
-function dbUpdateTodo(userId, id, patch) {
-  const db = readDB();
-  const t = (db.todos[userId] || []).find(x => x.id === id);
-  if (!t) throw new Error('Task not found.');
-  Object.assign(t, patch);
-  writeDB(db);
-  return t;
-}
-function dbDeleteTodo(userId, id) {
-  const db = readDB();
-  db.todos[userId] = (db.todos[userId] || []).filter(x => x.id !== id);
-  writeDB(db);
-}
+function dbGetTodos() { return apiFetch('/api/todos'); }
+function dbAddTodo(content) { return apiFetch('/api/todos', { method: 'POST', body: { content } }); }
+function dbUpdateTodo(id, patch) { return apiFetch('/api/todos/' + id, { method: 'PATCH', body: patch }); }
+function dbDeleteTodo(id) { return apiFetch('/api/todos/' + id, { method: 'DELETE' }); }
 
 // ---------- Conversations & messages ----------
-function decorateConversation(db, c, userId) {
-  const msgs = db.messages.filter(m => m.conversationId === c.id).sort((a, b) => b.createdAt - a.createdAt);
-  return {
-    id: c.id, isGroup: !!c.isGroup, title: c.title || '',
-    participants: c.participantIds.map(pid => ({ userId: pid, user: publicUser(db.users.find(u => u.id === pid)) })),
-    messages: msgs.slice(0, 1)
-  };
+function dbGetConversations() { return apiFetch('/api/conversations'); }
+function dbCreateDirectConversation(otherUserId) {
+  return apiFetch('/api/conversations/direct', { method: 'POST', body: { otherUserId } });
 }
-function dbGetConversations(userId) {
-  const db = readDB();
-  return db.conversations.filter(c => c.participantIds.includes(userId)).map(c => decorateConversation(db, c, userId));
-}
-function dbCreateDirectConversation(userId, otherUserId) {
-  const db = readDB();
-  let convo = db.conversations.find(c => !c.isGroup && c.participantIds.length === 2 && c.participantIds.includes(userId) && c.participantIds.includes(otherUserId));
-  if (!convo) {
-    convo = { id: uid('c'), isGroup: false, title: '', participantIds: [userId, otherUserId], createdAt: Date.now() };
-    db.conversations.push(convo);
-    writeDB(db);
-  }
-  return decorateConversation(db, convo, userId);
-}
-function dbGetMessages(conversationId) {
-  const db = readDB();
-  return db.messages.filter(m => m.conversationId === conversationId).sort((a, b) => a.createdAt - b.createdAt)
-    .map(m => Object.assign({}, m, { sender: publicUser(db.users.find(u => u.id === m.senderId)) }));
-}
-function dbSendMessage(conversationId, senderId, body) {
-  const db = readDB();
-  const convo = db.conversations.find(c => c.id === conversationId);
-  if (!convo || !convo.participantIds.includes(senderId)) throw new Error('Conversation not found.');
-  const message = { id: uid('m'), conversationId, senderId, body, createdAt: Date.now(), readBy: [senderId] };
-  db.messages.push(message);
-  writeDB(db);
-  return Object.assign({}, message, { sender: publicUser(db.users.find(u => u.id === senderId)) });
-}
-function dbMarkRead(conversationId, messageId, userId) {
-  const db = readDB();
-  const m = db.messages.find(x => x.id === messageId && x.conversationId === conversationId);
-  if (m && !m.readBy.includes(userId)) { m.readBy.push(userId); writeDB(db); }
-  return m;
-}
+function dbGetMessages(conversationId) { return apiFetch('/api/conversations/' + conversationId + '/messages'); }
 
 // ---------- Meetings ----------
-function dbGetMeetings() {
-  const db = readDB();
-  return db.meetings.map(m => ({ id: m.id, title: m.title, host: publicUser(db.users.find(u => u.id === m.hostId)), participantCount: m.participantIds.length, maxParticipants: MAX_MEETING_PARTICIPANTS }));
-}
-function dbHostMeeting(hostId, title) {
-  const db = readDB();
-  const meeting = { id: uid('mt'), title, hostId, participantIds: [hostId], createdAt: Date.now() };
-  db.meetings.push(meeting);
-  writeDB(db);
-  return { id: meeting.id, title: meeting.title };
-}
-function dbJoinMeeting(meetingId, userId) {
-  const db = readDB();
-  const meeting = db.meetings.find(m => m.id === meetingId);
-  if (!meeting) throw new Error('Meeting not found.');
-  if (!meeting.participantIds.includes(userId)) {
-    if (meeting.participantIds.length >= MAX_MEETING_PARTICIPANTS) throw new Error('This meeting is full.');
-    meeting.participantIds.push(userId);
-    writeDB(db);
-  }
-  return meeting.participantIds.filter(id => id !== userId);
-}
-function dbLeaveMeeting(meetingId, userId) {
-  const db = readDB();
-  const meeting = db.meetings.find(m => m.id === meetingId);
-  if (!meeting) return;
-  meeting.participantIds = meeting.participantIds.filter(id => id !== userId);
-  if (meeting.participantIds.length === 0) db.meetings = db.meetings.filter(m => m.id !== meetingId);
-  writeDB(db);
-}
+function dbGetMeetings() { return apiFetch('/api/meetings'); }
+function dbHostMeeting(title) { return apiFetch('/api/meetings', { method: 'POST', body: { title } }); }
 
 // =========================================================================
-// Local realtime — mimics the socket.io interface (on/emit) this app was
-// built around, but delivers events via BroadcastChannel to other tabs of
-// this same browser. Open the app in two tabs and sign in as two different
-// accounts to see messages, calls, and meetings update live between them.
+// Realtime — a real Socket.IO connection to the backend, authenticated with
+// the same JWT issued at login. Every socket.on/socket.emit call elsewhere
+// in this file talks directly to server.js from here on.
 // =========================================================================
-function createLocalSocket(userId) {
-  let bc = null;
-  try { bc = new BroadcastChannel('deml_realtime_v1'); } catch (e) { bc = null; }
-  const handlers = {};
-  function on(event, fn) { (handlers[event] = handlers[event] || []).push(fn); }
-  function trigger(event, payload) { (handlers[event] || []).forEach(fn => fn(payload)); }
-  function post(event, payload, toUserId) { if (bc) bc.postMessage({ event, payload, to: toUserId || null, from: userId }); }
-
-  if (bc) {
-    bc.onmessage = (e) => {
-      const msg = e.data;
-      if (!msg || msg.from === userId) return;
-      if (msg.to && msg.to !== userId) return;
-      trigger(msg.event, msg.payload);
-    };
-  }
-
-  function emit(event, payload, ack) {
-    payload = payload || {};
-    switch (event) {
-      case 'typing:start':
-      case 'typing:stop': {
-        const convo = readDB().conversations.find(c => c.id === payload.conversationId);
-        if (convo) convo.participantIds.filter(id => id !== userId)
-          .forEach(pid => post('typing:update', { conversationId: payload.conversationId, typing: event === 'typing:start' }, pid));
-        break;
-      }
-      case 'conversation:join':
-      case 'conversation:leave':
-        break; // no rooms needed — messages are addressed directly to participants
-      case 'message:send': {
-        let message;
-        try { message = dbSendMessage(payload.conversationId, userId, payload.body); }
-        catch (err) { ack && ack({ ok: false, error: err.message }); return; }
-        ack && ack({ ok: true });
-        trigger('message:new', message);
-        trigger('message:delivered', { messageId: message.id });
-        const convo = readDB().conversations.find(c => c.id === payload.conversationId);
-        (convo ? convo.participantIds : []).filter(id => id !== userId).forEach(pid => post('message:new', message, pid));
-        break;
-      }
-      case 'message:read': {
-        const m = dbMarkRead(payload.conversationId, payload.messageId, userId);
-        if (m && m.senderId !== userId) post('message:read', { messageId: m.id }, m.senderId);
-        break;
-      }
-      case 'call:invite': post('call:incoming', { fromUserId: userId, conversationId: payload.conversationId }, payload.toUserId); break;
-      case 'call:accept': post('call:accepted', { fromUserId: userId }, payload.toUserId); break;
-      case 'call:reject': post('call:rejected', {}, payload.toUserId); break;
-      case 'call:signal': post('call:signal', { fromUserId: userId, data: payload.data }, payload.toUserId); break;
-      case 'call:end': post('call:ended', {}, payload.toUserId); break;
-      case 'meeting:join': {
-        let peers;
-        try { peers = dbJoinMeeting(payload.meetingId, userId); }
-        catch (err) { ack && ack({ ok: false, error: err.message }); return; }
-        ack && ack({ ok: true, peers });
-        peers.forEach(pid => post('meeting:peer-joined', { userId }, pid));
-        break;
-      }
-      case 'meeting:signal': post('meeting:signal', { fromUserId: userId, data: payload.data }, payload.toUserId); break;
-      case 'meeting:leave': {
-        const db = readDB();
-        const meeting = db.meetings.find(m => m.id === payload.meetingId);
-        const others = meeting ? meeting.participantIds.filter(id => id !== userId) : [];
-        dbLeaveMeeting(payload.meetingId, userId);
-        others.forEach(pid => post('meeting:peer-left', { userId }, pid));
-        break;
-      }
-    }
-  }
-
-  return { on, emit, disconnect() { if (bc) bc.close(); } };
+function createRealtimeSocket() {
+  return io(API_BASE || undefined, {
+    auth: { token: authToken },
+    transports: ['websocket', 'polling'],
+  });
 }
 
 // =========================================================================
@@ -948,20 +1117,20 @@ function createLocalSocket(userId) {
 // stays signed in. Closing the tab or opening a new one starts fresh
 // (and different tabs can still hold different accounts for testing).
 // =========================================================================
-const SESSION_KEY = 'deml_session_user_id';
+const SESSION_USER_KEY = 'deml_session_user';
 let session = { user: null };
 let socket = null;
 
-function persistSession(userId) {
-  try { sessionStorage.setItem(SESSION_KEY, userId); } catch (e) {}
+function persistSession(user) {
+  try { sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(user)); } catch (e) {}
 }
 function clearPersistedSession() {
-  try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
+  try { sessionStorage.removeItem(SESSION_USER_KEY); } catch (e) {}
+  setAuthToken(null);
 }
 
 // ---------- Sign-in overlay wiring ----------
 const overlay = document.getElementById('overlay');
-document.getElementById('open-signin').addEventListener('click', () => overlay.classList.add('open'));
 document.getElementById('open-signin-2').addEventListener('click', () => overlay.classList.add('open'));
 document.getElementById('close-signin').addEventListener('click', () => overlay.classList.remove('open'));
 overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
@@ -969,16 +1138,16 @@ overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.cla
 const authForm = document.getElementById('auth-form');
 const formStatus = document.getElementById('form-status');
 const submitBtn = document.getElementById('submit-btn');
-authForm.addEventListener('submit', (e) => {
+authForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
   if (!username || !password) { formStatus.textContent = 'Enter both fields to continue.'; return; }
   submitBtn.classList.add('pulsing'); formStatus.textContent = 'Verifying credentials…';
   try {
-    const user = dbLogin(username, password);
+    const user = await dbLogin(username, password);
     session = { user };
-    persistSession(user.id);
+    persistSession(user);
     formStatus.textContent = '';
     overlay.classList.remove('open');
     authForm.reset();
@@ -1000,17 +1169,17 @@ const presidentForm = document.getElementById('president-form');
 const presidentStatus = document.getElementById('president-status');
 const presidentSubmit = document.getElementById('president-submit');
 
-presidentForm.addEventListener('submit', (e) => {
+presidentForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const u = document.getElementById('p-username').value.trim();
   const p = document.getElementById('p-password').value;
   if (!u || !p) { presidentStatus.textContent = 'Enter both fields to continue.'; return; }
   presidentSubmit.classList.add('pulsing'); presidentStatus.textContent = 'Verifying President credentials…';
   try {
-    const user = dbLogin(u, p);
+    const user = await dbLogin(u, p);
     if (user.role !== 'PRESIDENT') throw new Error('This account does not have President access.');
     session = { user };
-    persistSession(user.id);
+    persistSession(user);
     presidentStatus.textContent = '';
     presidentOverlay.classList.remove('open');
     presidentForm.reset();
@@ -1051,10 +1220,10 @@ function enterDashboard() {
 }
 
 // ---------- Manage Executives (President only) ----------
-function loadExecManagement() {
+async function loadExecManagement() {
   const list = document.getElementById('dash-exec-list');
   try {
-    const execs = dbGetExecutives();
+    const execs = await dbGetExecutives();
     list.innerHTML = execs.map(x => `
       <div class="exec-row" data-id="${x.id}">
         <span class="name">${escapeHtml(x.displayName)}</span>
@@ -1062,11 +1231,11 @@ function loadExecManagement() {
         ${x.role !== 'PRESIDENT' ? `<button class="btn small danger" data-remove="${x.id}" type="button" style="margin-left:12px;">Remove</button>` : ''}
       </div>`).join('');
     list.querySelectorAll('[data-remove]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         if (!confirm('Remove this executive? This cannot be undone.')) return;
         btn.disabled = true; btn.textContent = 'Removing…';
         try {
-          dbRemoveExecutive(btn.dataset.remove);
+          await dbRemoveExecutive(btn.dataset.remove);
           loadExecManagement();
           loadDirectoryAndConversations();
         } catch (err) {
@@ -1083,14 +1252,14 @@ function loadExecManagement() {
 
 const dashCreateExecForm = document.getElementById('dash-create-exec-form');
 const dashCreateExecStatus = document.getElementById('dash-create-exec-status');
-dashCreateExecForm.addEventListener('submit', (e) => {
+dashCreateExecForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('dx-username').value.trim();
   const designation = document.getElementById('dx-designation').value.trim();
   const password = document.getElementById('dx-password').value;
   dashCreateExecStatus.textContent = 'Creating…';
   try {
-    dbCreateExecutive({ username, designation, password });
+    await dbCreateExecutive({ username, designation, password });
     dashCreateExecStatus.textContent = `Created "${username}" with a permanent password. Share the credentials with them directly.`;
     dashCreateExecForm.reset();
     loadExecManagement();
@@ -1101,10 +1270,10 @@ dashCreateExecForm.addEventListener('submit', (e) => {
 });
 
 // ---------- Password change requests (President reviews, in Manage Executives) ----------
-function renderPasswordRequests() {
+async function renderPasswordRequests() {
   const list = document.getElementById('password-requests-list');
   if (!list) return;
-  const requests = dbGetPasswordRequests();
+  const requests = await dbGetPasswordRequests();
   if (!requests.length) { list.innerHTML = '<p class="president-note" style="margin:0">No requests yet.</p>'; return; }
   list.innerHTML = requests.map(r => `
     <div class="exec-row" data-id="${r.id}" style="flex-wrap:wrap;gap:6px;">
@@ -1127,14 +1296,14 @@ function renderPasswordRequests() {
     });
   });
   list.querySelectorAll('[data-approve]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      try { dbResolvePasswordRequest(btn.closest('.exec-row').dataset.id, 'approve'); renderPasswordRequests(); }
+    btn.addEventListener('click', async () => {
+      try { await dbResolvePasswordRequest(btn.closest('.exec-row').dataset.id, 'approve'); renderPasswordRequests(); }
       catch (err) { alert(err.message); }
     });
   });
   list.querySelectorAll('[data-deny]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      try { dbResolvePasswordRequest(btn.closest('.exec-row').dataset.id, 'deny'); renderPasswordRequests(); }
+    btn.addEventListener('click', async () => {
+      try { await dbResolvePasswordRequest(btn.closest('.exec-row').dataset.id, 'deny'); renderPasswordRequests(); }
       catch (err) { alert(err.message); }
     });
   });
@@ -1166,7 +1335,7 @@ document.getElementById('sign-out').addEventListener('click', () => {
 });
 
 function connectSocket() {
-  socket = createLocalSocket(session.user.id);
+  socket = createRealtimeSocket();
 
   socket.on('message:new', (message) => {
     if (message.conversationId === activeConversationId) {
@@ -1196,8 +1365,8 @@ function connectSocket() {
 }
 
 // ---------- Profile ----------
-function loadProfile() {
-  const p = dbGetProfile(session.user.id);
+async function loadProfile() {
+  const p = await dbGetProfile();
   document.getElementById('profile-avatar-preview').src = p.avatarUrl || placeholderAvatar();
   document.getElementById('profile-bio').value = p.bio || '';
   window.__socialLinks = Array.isArray(p.socialLinks) ? p.socialLinks : [];
@@ -1230,21 +1399,22 @@ document.getElementById('avatar-input').addEventListener('change', (e) => {
   reader.onload = () => { document.getElementById('profile-avatar-preview').src = reader.result; window.__pendingAvatar = reader.result; };
   reader.readAsDataURL(file);
 });
-document.getElementById('save-profile').addEventListener('click', () => {
+document.getElementById('save-profile').addEventListener('click', async () => {
   const status = document.getElementById('profile-status');
   status.textContent = 'Saving…';
   try {
     const body = { bio: document.getElementById('profile-bio').value, socialLinks: window.__socialLinks };
     if (window.__pendingAvatar) body.avatarUrl = window.__pendingAvatar;
-    const updated = dbUpdateProfile(session.user.id, body);
+    const updated = await dbUpdateProfile(body);
     session.user.avatarUrl = updated.avatarUrl;
+    persistSession(session.user);
     document.getElementById('dash-user-avatar').src = updated.avatarUrl || placeholderAvatar();
     status.textContent = 'Saved.';
   } catch (err) { status.textContent = err.message; }
 });
 
 // ---------- Password (Profile tab): President changes directly, others request ----------
-function renderPasswordSection() {
+async function renderPasswordSection() {
   const el = document.getElementById('password-section');
   if (!el) return;
   if (session.user.role === 'PRESIDENT') {
@@ -1257,17 +1427,17 @@ function renderPasswordSection() {
         <p class="form-status" id="president-password-status"></p>
         <button class="btn solid" type="submit" style="width:auto;padding:11px 26px;"><span class="label">Update password</span></button>
       </form>`;
-    document.getElementById('president-password-form').addEventListener('submit', (e) => {
+    document.getElementById('president-password-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const status = document.getElementById('president-password-status');
       try {
-        dbChangeOwnPassword(session.user.id, document.getElementById('pw-current').value, document.getElementById('pw-new').value);
+        await dbChangeOwnPassword(document.getElementById('pw-current').value, document.getElementById('pw-new').value);
         status.textContent = 'Password updated permanently.';
         e.target.reset();
       } catch (err) { status.textContent = err.message; }
     });
   } else {
-    const myRequests = dbGetMyPasswordRequests(session.user.id);
+    const myRequests = await dbGetPasswordRequests();
     const pending = myRequests.find(r => r.status === 'pending');
     el.innerHTML = `
       <h3 style="font-family:var(--display);font-size:1.05rem;font-weight:600;margin:0 0 6px;">Request password change</h3>
@@ -1284,11 +1454,11 @@ function renderPasswordSection() {
       `).join('')}</div>` : ''}
     `;
     const form = document.getElementById('request-password-form');
-    if (form) form.addEventListener('submit', (e) => {
+    if (form) form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const status = document.getElementById('request-password-status');
       try {
-        dbRequestPasswordChange(session.user.id, document.getElementById('rp-new').value, document.getElementById('rp-note').value);
+        await dbRequestPasswordChange(document.getElementById('rp-new').value, document.getElementById('rp-note').value);
         status.textContent = 'Request sent to the President.';
         renderPasswordSection();
       } catch (err) { status.textContent = err.message; }
@@ -1297,7 +1467,7 @@ function renderPasswordSection() {
 }
 
 // ---------- To-Do ----------
-function loadTodos() { renderTodos(dbGetTodos(session.user.id)); }
+async function loadTodos() { renderTodos(await dbGetTodos()); }
 function renderTodos(todos) {
   const list = document.getElementById('todo-list');
   list.innerHTML = todos.map(t => `
@@ -1308,25 +1478,26 @@ function renderTodos(todos) {
     </div>`).join('');
   list.querySelectorAll('.todo-row').forEach(row => {
     const id = row.dataset.id;
-    row.querySelector('input[type=checkbox]').addEventListener('change', (e) => {
-      dbUpdateTodo(session.user.id, id, { done: e.target.checked });
+    row.querySelector('input[type=checkbox]').addEventListener('change', async (e) => {
       row.classList.toggle('done', e.target.checked);
+      try { await dbUpdateTodo(id, { done: e.target.checked }); }
+      catch (err) { alert(err.message); row.classList.toggle('done', !e.target.checked); e.target.checked = !e.target.checked; }
     });
-    row.querySelector('[data-del]').addEventListener('click', () => {
-      dbDeleteTodo(session.user.id, id);
-      row.remove();
+    row.querySelector('[data-del]').addEventListener('click', async () => {
+      try { await dbDeleteTodo(id); row.remove(); }
+      catch (err) { alert(err.message); }
     });
   });
 }
 document.getElementById('todo-add-btn').addEventListener('click', addTodo);
 document.getElementById('todo-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
-function addTodo() {
+async function addTodo() {
   const input = document.getElementById('todo-input');
   const content = input.value.trim();
   if (!content) return;
   input.value = '';
-  dbAddTodo(session.user.id, content);
-  loadTodos();
+  try { await dbAddTodo(content); loadTodos(); }
+  catch (err) { alert(err.message); }
 }
 
 // ---------- Messages ----------
@@ -1335,13 +1506,13 @@ let conversations = [];
 let activeConversationId = null;
 let activeConversation = null;
 
-function loadDirectoryAndConversations() {
-  directory = dbGetExecutives();
-  refreshConvoList();
+async function loadDirectoryAndConversations() {
+  directory = await dbGetExecutives();
+  await refreshConvoList();
   renderContactList();
 }
-function refreshConvoList() {
-  conversations = dbGetConversations(session.user.id);
+async function refreshConvoList() {
+  conversations = await dbGetConversations();
   renderConvoList();
 }
 function otherParticipant(convo) {
@@ -1365,17 +1536,21 @@ function renderContactList() {
     <div class="msg-contact" data-id="${x.id}">
       <div><div class="msg-name">${escapeHtml(x.displayName)}</div><div class="msg-sub">${escapeHtml(x.designation)}</div></div>
     </div>`).join('');
-  list.querySelectorAll('.msg-contact').forEach(el => el.addEventListener('click', () => {
-    const convo = dbCreateDirectConversation(session.user.id, el.dataset.id);
-    refreshConvoList();
+  list.querySelectorAll('.msg-contact').forEach(el => el.addEventListener('click', async () => {
+    const convo = await dbCreateDirectConversation(el.dataset.id);
+    await refreshConvoList();
     openConversation(convo.id);
   }));
 }
 
-function openConversation(id) {
+async function openConversation(id) {
   if (activeConversationId) socket.emit('conversation:leave', { conversationId: activeConversationId });
   activeConversationId = id;
-  activeConversation = conversations.find(c => c.id === id) || dbGetConversations(session.user.id).find(c => c.id === id);
+  activeConversation = conversations.find(c => c.id === id);
+  if (!activeConversation) {
+    conversations = await dbGetConversations();
+    activeConversation = conversations.find(c => c.id === id);
+  }
   socket.emit('conversation:join', { conversationId: id });
   renderConvoList();
 
@@ -1393,7 +1568,7 @@ function openConversation(id) {
     <div class="msg-input-row"><input type="text" id="msg-input" placeholder="Type a message…" /><button class="btn solid small" id="msg-send">Send</button></div>
   `;
 
-  const messages = dbGetMessages(id);
+  const messages = await dbGetMessages(id);
   const scroll = document.getElementById('msg-scroll');
   scroll.innerHTML = '';
   messages.forEach(appendBubble);
@@ -1556,22 +1731,24 @@ document.getElementById('call-mute').addEventListener('click', (e) => {
 });
 
 // ---------- Meetings ----------
-function loadMeetings() {
+async function loadMeetings() {
   const hostArea = document.getElementById('meeting-host-area');
   if (session.user.role === 'PRESIDENT') {
     hostArea.innerHTML = `<div class="meeting-host-form"><input type="text" id="meeting-title" placeholder="Meeting title" /><button class="btn solid" id="host-meeting-btn" style="width:auto;padding:11px 22px;">Host meeting</button></div>`;
     document.getElementById('host-meeting-btn').addEventListener('click', async () => {
       const title = document.getElementById('meeting-title').value.trim();
       if (!title) return;
-      const meeting = dbHostMeeting(session.user.id, title);
-      await enterMeetingRoom(meeting.id, title);
-      loadMeetings();
+      try {
+        const meeting = await dbHostMeeting(title);
+        await enterMeetingRoom(meeting.id, title);
+        loadMeetings();
+      } catch (err) { alert(err.message); }
     });
   } else {
     hostArea.innerHTML = `<p class="president-note" style="margin:0 0 20px">Only the President can host a meeting. You can join a live meeting below.</p>`;
   }
 
-  const meetings = dbGetMeetings();
+  const meetings = await dbGetMeetings();
   const list = document.getElementById('meeting-list');
   list.innerHTML = meetings.map(m => `
     <div class="meeting-row" data-id="${m.id}" data-title="${escapeHtml(m.title)}">
@@ -1691,13 +1868,18 @@ document.getElementById('room-mute').addEventListener('click', (e) => {
 });
 
 // ---------- Restore session on refresh ----------
-(function restoreSession() {
-  let savedId = null;
-  try { savedId = sessionStorage.getItem(SESSION_KEY); } catch (e) {}
-  if (!savedId) return;
-  const user = readDB().users.find(u => u.id === savedId);
-  if (!user) { clearPersistedSession(); return; }
-  session = { user: publicUser(user) };
+(async function restoreSession() {
+  let savedUser = null;
+  try { savedUser = JSON.parse(sessionStorage.getItem(SESSION_USER_KEY) || 'null'); } catch (e) {}
+  if (!savedUser || !authToken) return;
+  try {
+    // Validate the token is still good before trusting the cached user.
+    await apiFetch('/api/profile/me');
+  } catch (e) {
+    clearPersistedSession();
+    return;
+  }
+  session = { user: savedUser };
   enterDashboard();
 })();
 
