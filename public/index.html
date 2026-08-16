@@ -4,6 +4,19 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>DEML Executive Channel</title>
+<script>
+// Runs before anything paints. If a session looks valid, hide the landing
+// page immediately (via a class + CSS below) instead of letting the browser
+// paint it first and then swap to the dashboard a moment later — that swap
+// is the "goes outside the site, then back" flash on reload.
+(function () {
+  try {
+    if (sessionStorage.getItem('deml_auth_token') && sessionStorage.getItem('deml_session_user')) {
+      document.documentElement.classList.add('deml-restoring');
+    }
+  } catch (e) {}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -320,13 +333,29 @@
   .meeting-info .m { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
 
   .call-overlay, .meeting-room { position: fixed; inset: 0; z-index: 60; background: var(--onyx); display: flex; flex-direction: column; }
-  .call-top, .room-top { padding: 16px clamp(20px,4vw,48px); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
+  .call-top, .room-top { padding: 16px clamp(20px,4vw,48px); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); gap: 14px; }
+  .call-top { display: grid; grid-template-columns: auto 1fr auto; }
+  .call-back-btn { background: transparent; border: 1px solid var(--line); color: var(--platinum); width: 34px; height: 34px; border-radius: 50%; font-size: 1rem; cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease; justify-self: start; }
+  .call-back-btn:hover { border-color: var(--gold); color: var(--gold-bright); }
+  .call-top #call-status-text { text-align: center; }
   .tile-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; padding: clamp(20px,4vw,48px); align-content: start; }
   .tile { background: var(--graphite); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; position: relative; aspect-ratio: 4/3; }
   .tile video { width: 100%; height: 100%; object-fit: cover; }
   .tile .label { position: absolute; bottom: 8px; left: 8px; font-family: var(--mono); font-size: 0.68rem; background: rgba(0,0,0,0.5); padding: 3px 8px; border-radius: 2px; }
-  .call-controls, .room-controls { display: flex; gap: 12px; justify-content: center; padding: 20px; border-top: 1px solid var(--line); }
+  .call-controls, .room-controls { display: flex; gap: 12px; justify-content: center; padding: 20px; border-top: 1px solid var(--line); flex-wrap: wrap; }
   .incoming-call { position: fixed; top: 20px; right: 20px; z-index: 70; background: var(--panel); border: 1px solid var(--gold); padding: 18px 22px; border-radius: 4px; display: flex; align-items: center; gap: 16px; }
+
+  .audio-call-visual { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  .audio-call-avatar { width: 108px; height: 108px; border-radius: 50%; background: var(--graphite); border: 1px solid var(--gold); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 2.1rem; font-weight: 600; color: var(--gold-bright); animation: audio-pulse 2.2s ease-in-out infinite; }
+  @keyframes audio-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(201,164,107,0.3); } 50% { box-shadow: 0 0 0 14px rgba(201,164,107,0); } }
+  .audio-call-name { font-family: var(--display); font-size: 1.2rem; font-weight: 600; color: var(--platinum); }
+  .audio-call-sub { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); letter-spacing: 0.06em; }
+
+  .return-to-call { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 65; background: var(--panel); border: 1px solid var(--gold); border-radius: 30px; padding: 10px 12px 10px 18px; display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .return-to-call .dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; box-shadow: 0 0 6px 1px rgba(76,175,80,0.6); animation: eyebrow-pulse 2s ease-in-out infinite; }
+  .return-to-call span#return-to-call-label { font-family: var(--mono); font-size: 0.75rem; color: var(--platinum); white-space: nowrap; }
+
+  .call-header-actions { display: flex; gap: 8px; }
 
   @media (max-width: 760px) {
     .msg-layout { grid-template-columns: 1fr; height: auto; }
@@ -351,9 +380,22 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   }
+  /* ---------- Session-restore boot state (prevents landing-page flash on reload) ---------- */
+  #boot-loading { display: none; position: fixed; inset: 0; z-index: 200; background: var(--onyx); flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+  #boot-loading .boot-mark { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--gold); border-top-color: transparent; animation: boot-spin 0.9s linear infinite; }
+  #boot-loading .boot-label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; }
+  @keyframes boot-spin { to { transform: rotate(360deg); } }
+  html.deml-restoring #landing-header,
+  html.deml-restoring #landing-main,
+  html.deml-restoring #landing-footer { display: none !important; }
+  html.deml-restoring #boot-loading { display: flex; }
+  .dash-tab { position: relative; }
+  .tab-badge { position: absolute; top: 4px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 6px 1px rgba(201,164,107,0.7); display: none; }
+  .tab-badge.show { display: block; animation: eyebrow-pulse 2s ease-in-out infinite; }
 </style>
 </head>
 <body>
+<div id="boot-loading"><div class="boot-mark"></div><div class="boot-label">Restoring session…</div></div>
 
 <canvas id="space-bg"></canvas>
 <div id="signal-cursor"><div class="signal-ring"></div><div class="signal-dot"></div></div>
@@ -529,11 +571,11 @@
       <div class="logo-text">DEML<small>EXECUTIVE&nbsp;CHANNEL</small></div>
     </div>
     <div class="dash-tabs" id="dash-tabs">
-      <button class="dash-tab active" data-tab="profile">Profile</button>
-      <button class="dash-tab" data-tab="todo">To-Do</button>
-      <button class="dash-tab" data-tab="messages">Messages</button>
-      <button class="dash-tab" data-tab="meeting">Meeting</button>
-      <button class="dash-tab hidden" data-tab="execs" id="tab-execs">Manage Executives</button>
+      <button class="dash-tab active" data-tab="profile">Profile<span class="tab-badge" id="badge-profile"></span></button>
+      <button class="dash-tab" data-tab="todo">To-Do<span class="tab-badge" id="badge-todo"></span></button>
+      <button class="dash-tab" data-tab="messages">Messages<span class="tab-badge" id="badge-messages"></span></button>
+      <button class="dash-tab" data-tab="meeting">Meeting<span class="tab-badge" id="badge-meeting"></span></button>
+      <button class="dash-tab hidden" data-tab="execs" id="tab-execs">Manage Executives<span class="tab-badge" id="badge-execs"></span></button>
     </div>
     <div class="dash-user">
       <div class="who"><div class="n" id="dash-user-name"></div><div class="d" id="dash-user-desig"></div></div>
@@ -626,7 +668,7 @@
 <div class="incoming-call hidden" id="incoming-call-banner">
   <div>
     <div style="font-family:var(--display);font-size:0.95rem" id="incoming-call-name">Incoming call</div>
-    <div style="font-family:var(--mono);font-size:0.68rem;color:var(--muted)">Audio/video call</div>
+    <div style="font-family:var(--mono);font-size:0.68rem;color:var(--muted)" id="incoming-call-type">Audio/video call</div>
   </div>
   <button class="btn small solid" id="accept-call">Accept</button>
   <button class="btn small danger" id="decline-call">Decline</button>
@@ -634,15 +676,33 @@
 
 <!-- ---------- Call overlay ---------- -->
 <div class="call-overlay hidden" id="call-overlay">
-  <div class="call-top"><span id="call-status-text">Calling…</span><span></span></div>
-  <div class="tile-grid">
+  <div class="call-top">
+    <button class="call-back-btn" id="call-back" title="Back to conversation" aria-label="Back">←</button>
+    <span id="call-status-text">Calling…</span>
+    <span></span>
+  </div>
+  <div class="tile-grid" id="call-tile-grid">
     <div class="tile"><video id="call-local-video" autoplay muted playsinline></video><span class="label">You</span></div>
     <div class="tile"><video id="call-remote-video" autoplay playsinline></video><span class="label" id="call-remote-label">Connecting…</span></div>
   </div>
+  <div class="audio-call-visual hidden" id="audio-call-visual">
+    <div class="audio-call-avatar" id="audio-call-avatar"></div>
+    <div class="audio-call-name" id="audio-call-name"></div>
+    <div class="audio-call-sub" id="audio-call-sub">Audio call</div>
+  </div>
   <div class="call-controls">
     <button class="btn small" id="call-mute">Mute</button>
+    <button class="btn small" id="call-camera">Camera off</button>
     <button class="btn small danger" id="call-hangup">End call</button>
   </div>
+</div>
+
+<!-- ---------- Floating "return to call" pill (shown after Back is pressed mid-call) ---------- -->
+<div class="return-to-call hidden" id="return-to-call">
+  <span class="dot"></span>
+  <span id="return-to-call-label">Call in progress</span>
+  <button class="btn small solid" id="return-to-call-btn" style="padding:6px 14px;">Return</button>
+  <button class="btn small danger" id="return-to-call-end" style="padding:6px 14px;">End</button>
 </div>
 
 <!-- ---------- Meeting room overlay ---------- -->
@@ -657,7 +717,18 @@
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+// STUN alone only works when both sides have simple, non-restrictive
+// networks. Behind most office/hotel/mobile NATs it fails silently or
+// falls back to a very poor path — which is what "laggy" calls usually
+// are. A TURN relay fixes that. This uses Open Relay's free public TURN
+// service; swap in your own TURN credentials for production use.
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:openrelay.metered.ca:80' },
+  { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+];
 
 // ---------- Signal-pulse cursor ----------
 const cursor = document.getElementById('signal-cursor');
@@ -1211,6 +1282,7 @@ function enterDashboard() {
   } else {
     execTab.classList.add('hidden');
   }
+  restoreActiveTab();
 
   connectSocket();
   loadProfile();
@@ -1274,6 +1346,8 @@ async function renderPasswordRequests() {
   const list = document.getElementById('password-requests-list');
   if (!list) return;
   const requests = await dbGetPasswordRequests();
+  const pendingCount = requests.filter(r => r.status === 'pending').length;
+  if (pendingCount > 0) showTabBadge('execs'); else clearTabBadge('execs');
   if (!requests.length) { list.innerHTML = '<p class="president-note" style="margin:0">No requests yet.</p>'; return; }
   list.innerHTML = requests.map(r => `
     <div class="exec-row" data-id="${r.id}" style="flex-wrap:wrap;gap:6px;">
@@ -1315,19 +1389,39 @@ function placeholderAvatar() {
   );
 }
 
+// ---------- Tab switching, remembered across reload ----------
+const ACTIVE_TAB_KEY = 'deml_active_tab';
+
+function activateTab(tabName) {
+  const tab = document.querySelector(`.dash-tab[data-tab="${tabName}"]`);
+  const panel = document.getElementById('panel-' + tabName);
+  if (!tab || !panel || tab.classList.contains('hidden')) return false;
+  document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.dash-panel').forEach(p => p.classList.remove('active'));
+  tab.classList.add('active');
+  panel.classList.add('active');
+  try { sessionStorage.setItem(ACTIVE_TAB_KEY, tabName); } catch (e) {}
+  if (tabName === 'messages') clearTabBadge('messages');
+  return true;
+}
+function restoreActiveTab() {
+  let saved = null;
+  try { saved = sessionStorage.getItem(ACTIVE_TAB_KEY); } catch (e) {}
+  if (!saved || !activateTab(saved)) activateTab('profile');
+}
+
+function showTabBadge(tabName) { const b = document.getElementById('badge-' + tabName); if (b) b.classList.add('show'); }
+function clearTabBadge(tabName) { const b = document.getElementById('badge-' + tabName); if (b) b.classList.remove('show'); }
+
 document.querySelectorAll('.dash-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.dash-panel').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-  });
+  tab.addEventListener('click', () => activateTab(tab.dataset.tab));
 });
 
 document.getElementById('sign-out').addEventListener('click', () => {
   if (socket) socket.disconnect();
   session = { user: null };
   clearPersistedSession();
+  try { sessionStorage.removeItem(ACTIVE_TAB_KEY); } catch (e) {}
   document.getElementById('dashboard').classList.add('hidden');
   document.getElementById('landing-header').classList.remove('hidden');
   document.getElementById('landing-main').classList.remove('hidden');
@@ -1344,6 +1438,10 @@ function connectSocket() {
     } else if (message.senderId !== session.user.id) {
       beep(660, 110, 0.05);
     }
+    const messagesTabActive = document.querySelector('.dash-tab[data-tab="messages"]').classList.contains('active');
+    if (message.senderId !== session.user.id && (!messagesTabActive || message.conversationId !== activeConversationId)) {
+      showTabBadge('messages');
+    }
     refreshConvoList();
   });
   socket.on('message:delivered', ({ messageId }) => setTick(messageId, 'delivered'));
@@ -1353,7 +1451,7 @@ function connectSocket() {
     document.getElementById('typing-note').textContent = typing ? 'Typing…' : '';
   });
 
-  socket.on('call:incoming', ({ fromUserId, conversationId }) => showIncomingCall(fromUserId, conversationId));
+  socket.on('call:incoming', ({ fromUserId, conversationId, video }) => showIncomingCall(fromUserId, conversationId, !!video));
   socket.on('call:accepted', ({ fromUserId }) => onCallAccepted(fromUserId));
   socket.on('call:rejected', () => { closeCallUI(); alert('Call declined.'); });
   socket.on('call:signal', ({ fromUserId, data }) => onCallSignal(fromUserId, data));
@@ -1561,7 +1659,7 @@ async function openConversation(id) {
   thread.innerHTML = `
     <div class="msg-thread-head">
       <span style="font-family:var(--display)">${escapeHtml(title)}</span>
-      ${!activeConversation.isGroup ? '<button class="btn small" id="call-btn">Call</button>' : ''}
+      ${!activeConversation.isGroup ? '<span class="call-header-actions"><button class="btn small" id="video-call-btn" title="Video call">Video call</button><button class="btn small" id="audio-call-btn" title="Audio call">Audio call</button></span>' : ''}
     </div>
     <div class="msg-scroll" id="msg-scroll"></div>
     <div class="typing-note" id="typing-note"></div>
@@ -1580,7 +1678,8 @@ async function openConversation(id) {
   input.addEventListener('blur', () => socket.emit('typing:stop', { conversationId: id }));
 
   if (!activeConversation.isGroup && other) {
-    document.getElementById('call-btn').addEventListener('click', () => startCall(other.id, other.displayName, id));
+    document.getElementById('video-call-btn').addEventListener('click', () => startCall(other.id, other.displayName, id, true));
+    document.getElementById('audio-call-btn').addEventListener('click', () => startCall(other.id, other.displayName, id, false));
   }
 }
 
@@ -1627,7 +1726,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ---------- 1:1 Calls (WebRTC) ----------
-let activeCall = null; // { pc, remoteUserId, conversationId, localStream }
+let activeCall = null; // { pc, remoteUserId, remoteName, conversationId, localStream, isVideo }
 
 function newPeerConnection(onIce, onTrack) {
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -1636,29 +1735,62 @@ function newPeerConnection(onIce, onTrack) {
   return pc;
 }
 
-async function startCall(toUserId, toName, conversationId) {
-  const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-  document.getElementById('call-local-video').srcObject = localStream;
+// Capped resolution/frame rate keeps calls smooth on modest connections —
+// full webcam resolution is rarely needed and is the main cause of "laggy"
+// video over a typical uplink.
+function getCallMediaConstraints(isVideo) {
+  return {
+    audio: true,
+    video: isVideo ? { width: { ideal: 640, max: 854 }, height: { ideal: 480, max: 480 }, frameRate: { ideal: 24, max: 30 } } : false,
+  };
+}
+
+function initials(name) {
+  return (name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+function setCallUIMode(isVideo, remoteName) {
+  document.getElementById('call-tile-grid').classList.toggle('hidden', !isVideo);
+  document.getElementById('audio-call-visual').classList.toggle('hidden', isVideo);
+  document.getElementById('call-camera').classList.toggle('hidden', !isVideo);
+  document.getElementById('call-hangup').textContent = isVideo ? 'End video call' : 'End audio call';
+  if (!isVideo) {
+    document.getElementById('audio-call-avatar').textContent = initials(remoteName);
+    document.getElementById('audio-call-name').textContent = remoteName || 'Unknown';
+  }
+}
+
+async function startCall(toUserId, toName, conversationId, isVideo) {
+  let localStream;
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia(getCallMediaConstraints(isVideo));
+  } catch (err) {
+    alert('Could not access ' + (isVideo ? 'camera/microphone' : 'microphone') + ': ' + err.message);
+    return;
+  }
+  document.getElementById('call-local-video').srcObject = isVideo ? localStream : null;
   document.getElementById('call-remote-label').textContent = toName;
   document.getElementById('call-status-text').textContent = 'Calling ' + toName + '…';
   document.getElementById('call-overlay').classList.remove('hidden');
+  document.getElementById('return-to-call').classList.add('hidden');
+  setCallUIMode(isVideo, toName);
 
   const pc = newPeerConnection(
     (candidate) => socket.emit('call:signal', { toUserId, data: { candidate } }),
     (stream) => { document.getElementById('call-remote-video').srcObject = stream; document.getElementById('call-status-text').textContent = 'Connected'; }
   );
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  activeCall = { pc, remoteUserId: toUserId, conversationId, localStream };
-  socket.emit('call:invite', { toUserId, conversationId });
+  activeCall = { pc, remoteUserId: toUserId, remoteName: toName, conversationId, localStream, isVideo };
+  socket.emit('call:invite', { toUserId, conversationId, video: isVideo });
 }
 
 // Shows who is calling — their name (and role) — pulled straight from the executive directory.
-function showIncomingCall(fromUserId, conversationId) {
+function showIncomingCall(fromUserId, conversationId, isVideo) {
   const contact = directory.find(d => d.id === fromUserId);
   const callerName = contact?.displayName || 'Someone';
   const callerRole = contact?.designation ? ' · ' + contact.designation : '';
   document.getElementById('incoming-call-name').textContent = callerName + ' is calling';
-  document.querySelector('#incoming-call-banner div div[style*="font-size:0.68rem"]').textContent = 'Audio/video call' + callerRole;
+  document.getElementById('incoming-call-type').textContent = (isVideo ? 'Video call' : 'Audio call') + callerRole;
   document.getElementById('incoming-call-banner').classList.remove('hidden');
 
   const accept = document.getElementById('accept-call');
@@ -1666,17 +1798,26 @@ function showIncomingCall(fromUserId, conversationId) {
   const onAccept = async () => {
     cleanup();
     document.getElementById('incoming-call-banner').classList.add('hidden');
-    const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-    document.getElementById('call-local-video').srcObject = localStream;
+    let localStream;
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia(getCallMediaConstraints(isVideo));
+    } catch (err) {
+      alert('Could not access ' + (isVideo ? 'camera/microphone' : 'microphone') + ': ' + err.message);
+      socket.emit('call:reject', { toUserId: fromUserId, conversationId });
+      return;
+    }
+    document.getElementById('call-local-video').srcObject = isVideo ? localStream : null;
     document.getElementById('call-remote-label').textContent = callerName;
     document.getElementById('call-status-text').textContent = 'Connecting…';
     document.getElementById('call-overlay').classList.remove('hidden');
+    document.getElementById('return-to-call').classList.add('hidden');
+    setCallUIMode(isVideo, callerName);
     const pc = newPeerConnection(
       (candidate) => socket.emit('call:signal', { toUserId: fromUserId, data: { candidate } }),
       (stream) => { document.getElementById('call-remote-video').srcObject = stream; document.getElementById('call-status-text').textContent = 'Connected'; }
     );
     localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-    activeCall = { pc, remoteUserId: fromUserId, conversationId, localStream };
+    activeCall = { pc, remoteUserId: fromUserId, remoteName: callerName, conversationId, localStream, isVideo };
     socket.emit('call:accept', { toUserId: fromUserId, conversationId });
   };
   const onDecline = () => {
@@ -1718,7 +1859,30 @@ function closeCallUI() {
   }
   activeCall = null;
   document.getElementById('call-overlay').classList.add('hidden');
+  document.getElementById('return-to-call').classList.add('hidden');
 }
+
+// "Back" minimizes the call (it keeps running) instead of ending it, and
+// leaves a small pill on screen to jump back in or end it from there.
+function minimizeCall() {
+  if (!activeCall) return;
+  document.getElementById('call-overlay').classList.add('hidden');
+  document.getElementById('return-to-call-label').textContent = (activeCall.isVideo ? 'Video call' : 'Audio call') + ' with ' + (activeCall.remoteName || 'Unknown');
+  document.getElementById('return-to-call').classList.remove('hidden');
+}
+function restoreCall() {
+  if (!activeCall) return;
+  document.getElementById('return-to-call').classList.add('hidden');
+  document.getElementById('call-overlay').classList.remove('hidden');
+}
+
+document.getElementById('call-back').addEventListener('click', minimizeCall);
+document.getElementById('return-to-call-btn').addEventListener('click', restoreCall);
+document.getElementById('return-to-call-end').addEventListener('click', () => {
+  if (activeCall) socket.emit('call:end', { toUserId: activeCall.remoteUserId });
+  closeCallUI();
+});
+
 document.getElementById('call-hangup').addEventListener('click', () => {
   if (activeCall) socket.emit('call:end', { toUserId: activeCall.remoteUserId });
   closeCallUI();
@@ -1726,8 +1890,16 @@ document.getElementById('call-hangup').addEventListener('click', () => {
 document.getElementById('call-mute').addEventListener('click', (e) => {
   if (!activeCall) return;
   const track = activeCall.localStream.getAudioTracks()[0];
+  if (!track) return;
   track.enabled = !track.enabled;
   e.target.textContent = track.enabled ? 'Mute' : 'Unmute';
+});
+document.getElementById('call-camera').addEventListener('click', (e) => {
+  if (!activeCall) return;
+  const track = activeCall.localStream.getVideoTracks()[0];
+  if (!track) return;
+  track.enabled = !track.enabled;
+  e.target.textContent = track.enabled ? 'Camera off' : 'Camera on';
 });
 
 // ---------- Meetings ----------
@@ -1769,7 +1941,7 @@ async function loadMeetings() {
 let activeMeeting = null; // { id, localStream, peers: Map(userId -> { pc, stream }) }
 
 async function enterMeetingRoom(meetingId, title) {
-  const localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+  const localStream = await navigator.mediaDevices.getUserMedia(getCallMediaConstraints(true));
   activeMeeting = { id: meetingId, localStream, peers: new Map() };
 
   document.getElementById('room-title-text').textContent = title;
@@ -1871,16 +2043,21 @@ document.getElementById('room-mute').addEventListener('click', (e) => {
 (async function restoreSession() {
   let savedUser = null;
   try { savedUser = JSON.parse(sessionStorage.getItem(SESSION_USER_KEY) || 'null'); } catch (e) {}
-  if (!savedUser || !authToken) return;
+  if (!savedUser || !authToken) {
+    document.documentElement.classList.remove('deml-restoring');
+    return;
+  }
   try {
     // Validate the token is still good before trusting the cached user.
     await apiFetch('/api/profile/me');
   } catch (e) {
     clearPersistedSession();
+    document.documentElement.classList.remove('deml-restoring');
     return;
   }
   session = { user: savedUser };
   enterDashboard();
+  document.documentElement.classList.remove('deml-restoring');
 })();
 
 </script>
