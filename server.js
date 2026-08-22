@@ -17,12 +17,19 @@ const express = require('express');
 const path = require('path');
 const http = require('http');
 const cors = require('cors');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); // async .hash/.compare used below to avoid blocking the event loop
 const jwt = require('jsonwebtoken');
 const { v4: uuid } = require('uuid');
 const { Server } = require('socket.io');
 
 const PORT = process.env.PORT || 4000;
+
+if (!process.env.JWT_SECRET) {
+  console.warn('\n⚠️  WARNING: JWT_SECRET is not set. Using an insecure default.');
+  console.warn('   Anyone who can see this code (e.g. a public GitHub repo) can forge');
+  console.warn('   login sessions, including a President session. Set a real JWT_SECRET');
+  console.warn('   environment variable before deploying. See DEPLOY.md.\n');
+}
 const JWT_SECRET = process.env.JWT_SECRET || 'deml-dev-secret-change-me';
 
 // =========================================================================
@@ -34,8 +41,11 @@ const db = {
   conversations: new Map(),  // id -> conversation
   messages: new Map(),       // id -> message
   meetings: new Map(),       // id -> meeting
+  announcements: new Map(),  // id -> announcement
+  events: new Map(),         // id -> event
 };
 const passwordRequests = new Map(); // id -> { id, userId, newPassword, note, status, createdAt, resolvedAt }
+const profileRequests = new Map(); // id -> { id, name, email, phone, password, status, createdAt, resolvedAt }
 
 function publicUser(u) {
   if (!u) return null;
@@ -83,8 +93,38 @@ seedPresident();
 // =========================================================================
 const app = express();
 app.use(cors({ origin: true }));
-app.use(express.json({ limit: '15mb' })); // avatars are base64 data URLs
+app.use(express.json({ limit: '20mb' })); // avatars + chat attachments are base64 data URLs
 app.use(express.static(path.join(__dirname, 'public'))); // serves index.html (the website itself)
+
+// =========================================================================
+// Chat attachment helpers
+// =========================================================================
+const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024; // 8MB, before base64 overhead
+const DATA_URL_RE = /^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+)$/;
+
+function parseAttachment(raw) {
+  if (!raw || typeof raw !== 'object') return { error: null, attachment: null };
+  const { name, mimeType, dataUrl } = raw;
+  if (!name || !String(name).trim()) return { error: 'Attachment name is required.', attachment: null };
+  if (!dataUrl || typeof dataUrl !== 'string') return { error: 'Attachment data is missing.', attachment: null };
+  const match = DATA_URL_RE.exec(dataUrl);
+  if (!match) return { error: 'Attachment format is invalid.', attachment: null };
+  const declaredType = mimeType || match[1];
+  const base64Body = match[2];
+  const approxBytes = Math.floor(base64Body.length * 0.75);
+  if (approxBytes > MAX_ATTACHMENT_BYTES) {
+    return { error: 'Attachments must be 8MB or smaller.', attachment: null };
+  }
+  return {
+    error: null,
+    attachment: {
+      name: String(name).trim().slice(0, 150),
+      mimeType: declaredType,
+      size: approxBytes,
+      dataUrl,
+    },
+  };
+}
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
@@ -141,14 +181,57 @@ function requirePresident(req, res, next) {
 // =========================================================================
 // Auth routes
 // =========================================================================
-app.post('/api/auth/login', (req, res) => {
+// Very simple in-memory rate limiter for login attempts, keyed by IP.
+// Not a substitute for a real rate-limiting layer at scale, but stops
+// naive brute-force attempts against a small deployment like this one.
+const LOGIN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const LOGIN_MAX_ATTEMPTS = 10;
+const loginAttempts = new Map(); // ip -> { count, windowStart }
+
+function loginRateLimit(req, res, next) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = loginAttempts.get(ip);
+  if (!entry || now - entry.windowStart > LOGIN_WINDOW_MS) {
+    loginAttempts.set(ip, { count: 1, windowStart: now });
+    return next();
+  }
+  entry.count += 1;
+  if (entry.count > LOGIN_MAX_ATTEMPTS) {
+    return res.status(429).json({ error: 'Too many login attempts. Please wait a few minutes and try again.' });
+  }
+  next();
+}
+
+// Same idea, separately keyed, for the public (unauthenticated) profile-request
+// endpoint — stops naive spam submissions to a form anyone on the internet can reach.
+const PROFILE_REQUEST_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const PROFILE_REQUEST_MAX_ATTEMPTS = 5;
+const profileRequestAttempts = new Map(); // ip -> { count, windowStart }
+
+function profileRequestRateLimit(req, res, next) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = profileRequestAttempts.get(ip);
+  if (!entry || now - entry.windowStart > PROFILE_REQUEST_WINDOW_MS) {
+    profileRequestAttempts.set(ip, { count: 1, windowStart: now });
+    return next();
+  }
+  entry.count += 1;
+  if (entry.count > PROFILE_REQUEST_MAX_ATTEMPTS) {
+    return res.status(429).json({ error: 'Too many requests. Please wait a while and try again.' });
+  }
+  next();
+}
+
+app.post('/api/auth/login', loginRateLimit, async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'Username and password are required.' });
 
   const user = [...db.users.values()].find(u => u.username.toLowerCase() === String(username).toLowerCase());
   if (!user) return res.status(401).json({ error: 'Invalid username or password.' });
 
-  const ok = bcrypt.compareSync(password, user.passwordHash);
+  const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ error: 'Invalid username or password.' });
 
   const token = signToken(user);
@@ -159,22 +242,25 @@ app.post('/api/auth/login', (req, res) => {
 // Executives (directory + President-only creation)
 // =========================================================================
 app.get('/api/executives', authMiddleware, (req, res) => {
-  const list = [...db.users.values()].map(publicUser);
+  const list = [...db.users.values()].map(u => ({ ...publicUser(u), online: isOnline(u.id) }));
   res.json(list);
 });
 
-app.post('/api/executives', authMiddleware, requirePresident, (req, res) => {
-  const { username, designation, password } = req.body || {};
+app.post('/api/executives', authMiddleware, requirePresident, async (req, res) => {
+  const username = String(req.body?.username || '').trim();
+  const designation = String(req.body?.designation || '').trim();
+  const password = req.body?.password;
   if (!username || !designation || !password) {
     return res.status(400).json({ error: 'Username, designation, and password are required.' });
   }
-  const exists = [...db.users.values()].some(u => u.username.toLowerCase() === String(username).toLowerCase());
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  const exists = [...db.users.values()].some(u => u.username.toLowerCase() === username.toLowerCase());
   if (exists) return res.status(409).json({ error: 'That username is already taken.' });
 
   const user = {
     id: uuid(),
     username,
-    passwordHash: bcrypt.hashSync(password, 10),
+    passwordHash: await bcrypt.hash(password, 10),
     role: 'EXECUTIVE',
     displayName: username,
     designation,
@@ -198,7 +284,130 @@ app.delete('/api/executives/:id', authMiddleware, requirePresident, (req, res) =
     m.participantIds = m.participantIds.filter(pid => pid !== user.id);
     if (m.hostId === user.id) m.active = false;
   }
+  for (const ev of db.events.values()) {
+    ev.attendeeIds = ev.attendeeIds.filter(id => id !== user.id);
+  }
   res.status(204).end();
+});
+
+// =========================================================================
+// Announcements — President posts to every executive; everyone can read.
+// =========================================================================
+function publicAnnouncement(a) {
+  return {
+    id: a.id,
+    title: a.title,
+    body: a.body,
+    author: publicUser(db.users.get(a.authorId)),
+    createdAt: a.createdAt,
+  };
+}
+
+app.get('/api/announcements', authMiddleware, (req, res) => {
+  const list = [...db.announcements.values()]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map(publicAnnouncement);
+  res.json(list);
+});
+
+app.post('/api/announcements', authMiddleware, requirePresident, (req, res) => {
+  const { title, body } = req.body || {};
+  if (!title || !title.trim()) return res.status(400).json({ error: 'Title is required.' });
+  if (!body || !body.trim()) return res.status(400).json({ error: 'Announcement body is required.' });
+
+  const announcement = {
+    id: uuid(),
+    authorId: req.user.id,
+    title: title.trim(),
+    body: body.trim(),
+    createdAt: Date.now(),
+  };
+  db.announcements.set(announcement.id, announcement);
+
+  const payload = publicAnnouncement(announcement);
+  // Broadcast to every user who's currently connected (including the poster).
+  db.users.forEach(u => emitToUser(u.id, 'announcement:new', payload));
+
+  res.status(201).json(payload);
+});
+
+app.delete('/api/announcements/:id', authMiddleware, requirePresident, (req, res) => {
+  const announcement = db.announcements.get(req.params.id);
+  if (!announcement) return res.status(404).json({ error: 'Announcement not found.' });
+  db.announcements.delete(req.params.id);
+  db.users.forEach(u => emitToUser(u.id, 'announcement:removed', { id: req.params.id }));
+  res.status(204).end();
+});
+
+// =========================================================================
+// Events — President posts; everyone can view and RSVP ("Going").
+// =========================================================================
+function publicEvent(e) {
+  return {
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    location: e.location,
+    startsAt: e.startsAt,
+    author: publicUser(db.users.get(e.authorId)),
+    createdAt: e.createdAt,
+    attendees: e.attendeeIds.map(id => publicUser(db.users.get(id))).filter(Boolean),
+  };
+}
+
+app.get('/api/events', authMiddleware, (req, res) => {
+  const list = [...db.events.values()]
+    .sort((a, b) => a.startsAt - b.startsAt)
+    .map(publicEvent);
+  res.json(list);
+});
+
+app.post('/api/events', authMiddleware, requirePresident, (req, res) => {
+  const title = String(req.body?.title || '').trim();
+  const description = String(req.body?.description || '').trim();
+  const location = String(req.body?.location || '').trim();
+  const startsAtRaw = req.body?.startsAt;
+  if (!title) return res.status(400).json({ error: 'Title is required.' });
+  const startsAt = Date.parse(startsAtRaw);
+  if (!startsAtRaw || Number.isNaN(startsAt)) return res.status(400).json({ error: 'A valid date/time is required.' });
+
+  const event = {
+    id: uuid(),
+    authorId: req.user.id,
+    title,
+    description,
+    location,
+    startsAt,
+    createdAt: Date.now(),
+    attendeeIds: [],
+  };
+  db.events.set(event.id, event);
+
+  const payload = publicEvent(event);
+  db.users.forEach(u => emitToUser(u.id, 'event:new', payload));
+
+  res.status(201).json(payload);
+});
+
+app.delete('/api/events/:id', authMiddleware, requirePresident, (req, res) => {
+  const event = db.events.get(req.params.id);
+  if (!event) return res.status(404).json({ error: 'Event not found.' });
+  db.events.delete(req.params.id);
+  db.users.forEach(u => emitToUser(u.id, 'event:removed', { id: req.params.id }));
+  res.status(204).end();
+});
+
+app.post('/api/events/:id/rsvp', authMiddleware, (req, res) => {
+  const event = db.events.get(req.params.id);
+  if (!event) return res.status(404).json({ error: 'Event not found.' });
+  const attending = !!req.body?.attending;
+  event.attendeeIds = event.attendeeIds.filter(id => id !== req.user.id);
+  if (attending) event.attendeeIds.push(req.user.id);
+
+  const payload = publicEvent(event);
+  db.users.forEach(u => emitToUser(u.id, 'event:updated', payload));
+
+  res.json(payload);
 });
 
 // =========================================================================
@@ -223,15 +432,15 @@ app.patch('/api/profile/me', authMiddleware, (req, res) => {
 // request that only the President can approve (which sets it permanently)
 // or deny.
 // =========================================================================
-app.patch('/api/auth/password', authMiddleware, (req, res) => {
+app.patch('/api/auth/password', authMiddleware, async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   const u = req.user;
   if (u.role !== 'PRESIDENT') return res.status(403).json({ error: 'Only the President can change a password directly. Submit a request instead.' });
-  if (!currentPassword || !bcrypt.compareSync(currentPassword, u.passwordHash)) {
+  if (!currentPassword || !(await bcrypt.compare(currentPassword, u.passwordHash))) {
     return res.status(401).json({ error: 'Current password is incorrect.' });
   }
-  if (!newPassword || newPassword.length < 4) return res.status(400).json({ error: 'New password must be at least 4 characters.' });
-  u.passwordHash = bcrypt.hashSync(newPassword, 10);
+  if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+  u.passwordHash = await bcrypt.hash(newPassword, 10);
   res.json({ ok: true });
 });
 
@@ -251,7 +460,7 @@ function publicPasswordRequest(r) {
 app.post('/api/password-requests', authMiddleware, (req, res) => {
   const { newPassword, note } = req.body || {};
   const u = req.user;
-  if (!newPassword || newPassword.length < 4) return res.status(400).json({ error: 'New password must be at least 4 characters.' });
+  if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters.' });
   const pending = [...passwordRequests.values()].some(r => r.userId === u.id && r.status === 'pending');
   if (pending) return res.status(409).json({ error: 'You already have a pending request.' });
 
@@ -275,7 +484,7 @@ app.get('/api/password-requests', authMiddleware, (req, res) => {
   res.json(list.map(publicPasswordRequest));
 });
 
-app.post('/api/password-requests/:id/resolve', authMiddleware, requirePresident, (req, res) => {
+app.post('/api/password-requests/:id/resolve', authMiddleware, requirePresident, async (req, res) => {
   const request = passwordRequests.get(req.params.id);
   if (!request) return res.status(404).json({ error: 'Request not found.' });
   if (request.status !== 'pending') return res.status(409).json({ error: 'This request was already resolved.' });
@@ -284,7 +493,7 @@ app.post('/api/password-requests/:id/resolve', authMiddleware, requirePresident,
   if (action === 'approve') {
     const u = db.users.get(request.userId);
     if (!u) return res.status(404).json({ error: 'User not found.' });
-    u.passwordHash = bcrypt.hashSync(request.newPassword, 10);
+    u.passwordHash = await bcrypt.hash(request.newPassword, 10);
     request.status = 'approved';
   } else if (action === 'deny') {
     request.status = 'denied';
@@ -294,6 +503,81 @@ app.post('/api/password-requests/:id/resolve', authMiddleware, requirePresident,
   request.newPassword = undefined; // never keep plaintext around after resolution
   request.resolvedAt = Date.now();
   res.json(publicPasswordRequest(request));
+});
+
+// =========================================================================
+// Profile requests — anyone (not yet a member) can submit a request with
+// the account details they'd like. This is NOT self-registration: nothing
+// is created automatically. The President reviews the request and, if
+// approved, contacts the person and creates their account manually from
+// the "Manage Executives" tab, same as always.
+// =========================================================================
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function publicProfileRequest(r) {
+  return {
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    phone: r.phone,
+    password: r.status === 'pending' ? r.password : undefined,
+    status: r.status,
+    createdAt: r.createdAt,
+    resolvedAt: r.resolvedAt,
+  };
+}
+
+// Public — no authentication. This is the only endpoint in the app someone
+// without an account can call (besides login and the public stats count).
+app.post('/api/profile-requests', profileRequestRateLimit, (req, res) => {
+  const name = String(req.body?.name || '').trim();
+  const email = String(req.body?.email || '').trim();
+  const phone = String(req.body?.phone || '').trim();
+  const password = req.body?.password;
+
+  if (!name) return res.status(400).json({ error: 'Name is required.' });
+  if (!email || !EMAIL_RE.test(email)) return res.status(400).json({ error: 'A valid email is required.' });
+  if (!phone) return res.status(400).json({ error: 'Phone number is required.' });
+  if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+
+  const request = {
+    id: uuid(),
+    name: name.slice(0, 100),
+    email: email.slice(0, 150),
+    phone: phone.slice(0, 40),
+    password,
+    status: 'pending',
+    createdAt: Date.now(),
+    resolvedAt: null,
+  };
+  profileRequests.set(request.id, request);
+
+  const payload = publicProfileRequest(request);
+  db.users.forEach(u => { if (u.role === 'PRESIDENT') emitToUser(u.id, 'profile-request:new', payload); });
+
+  res.status(201).json({ ok: true });
+});
+
+app.get('/api/profile-requests', authMiddleware, requirePresident, (req, res) => {
+  const list = [...profileRequests.values()]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map(publicProfileRequest);
+  res.json(list);
+});
+
+app.post('/api/profile-requests/:id/resolve', authMiddleware, requirePresident, (req, res) => {
+  const request = profileRequests.get(req.params.id);
+  if (!request) return res.status(404).json({ error: 'Request not found.' });
+  if (request.status !== 'pending') return res.status(409).json({ error: 'This request was already resolved.' });
+
+  const { action } = req.body || {};
+  if (action !== 'contacted' && action !== 'dismiss') {
+    return res.status(400).json({ error: 'Action must be "contacted" or "dismiss".' });
+  }
+  request.status = action === 'contacted' ? 'contacted' : 'dismissed';
+  request.password = undefined; // never keep plaintext around after resolution
+  request.resolvedAt = Date.now();
+  res.json(publicProfileRequest(request));
 });
 
 // =========================================================================
@@ -342,7 +626,7 @@ function hydrateConversation(convo, viewerId) {
     isGroup: convo.isGroup,
     title: convo.title || null,
     participants,
-    messages: msgs.slice(0, 1).map(m => ({ id: m.id, body: m.body, senderId: m.senderId, createdAt: m.createdAt })),
+    messages: msgs.slice(0, 1).map(m => ({ id: m.id, body: m.body, attachment: m.attachment || null, senderId: m.senderId, createdAt: m.createdAt })),
   };
 }
 
@@ -386,6 +670,7 @@ app.get('/api/conversations/:id/messages', authMiddleware, (req, res) => {
       senderId: m.senderId,
       sender: publicUser(db.users.get(m.senderId)),
       body: m.body,
+      attachment: m.attachment || null,
       createdAt: m.createdAt,
       readBy: m.readBy,
     }));
@@ -455,9 +740,57 @@ app.post('/api/meetings/:id/leave', authMiddleware, (req, res) => {
 });
 
 // =========================================================================
+// Search — messages the user can see (their own conversations) + all
+// announcements. Simple case-insensitive substring match, capped result
+// counts since this is an in-memory store with no indexing.
+// =========================================================================
+const SEARCH_RESULT_LIMIT = 30;
+
+app.get('/api/search', authMiddleware, (req, res) => {
+  const q = String(req.query.q || '').trim().toLowerCase();
+  if (!q) return res.json({ messages: [], announcements: [] });
+
+  const myConvoIds = new Set(
+    [...db.conversations.values()].filter(c => c.participantIds.includes(req.user.id)).map(c => c.id)
+  );
+
+  const messageResults = [...db.messages.values()]
+    .filter(m => myConvoIds.has(m.conversationId) && m.body && m.body.toLowerCase().includes(q))
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, SEARCH_RESULT_LIMIT)
+    .map(m => {
+      const convo = db.conversations.get(m.conversationId);
+      const other = convo && !convo.isGroup ? convo.participantIds.find(pid => pid !== req.user.id) : null;
+      return {
+        id: m.id,
+        conversationId: m.conversationId,
+        conversationLabel: convo?.isGroup ? (convo.title || 'Group') : publicUser(db.users.get(other))?.displayName || 'Conversation',
+        senderId: m.senderId,
+        sender: publicUser(db.users.get(m.senderId)),
+        body: m.body,
+        createdAt: m.createdAt,
+      };
+    });
+
+  const announcementResults = [...db.announcements.values()]
+    .filter(a => a.title.toLowerCase().includes(q) || a.body.toLowerCase().includes(q))
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, SEARCH_RESULT_LIMIT)
+    .map(publicAnnouncement);
+
+  res.json({ messages: messageResults, announcements: announcementResults });
+});
+
+// =========================================================================
 // Health check
 // =========================================================================
 app.get('/api/health', (req, res) => res.json({ ok: true, time: Date.now() }));
+
+// Public, unauthenticated — just a headline count for the landing page.
+// Exposes nothing about who the executives are, only how many accounts exist.
+app.get('/api/public/stats', (req, res) => {
+  res.json({ profileCount: db.users.size });
+});
 
 // =========================================================================
 // Socket.IO
@@ -478,7 +811,12 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   const userId = socket.userId;
+  const wasOnline = isOnline(userId);
   addOnline(userId, socket.id);
+  // First socket for this user going online — tell everyone else.
+  if (!wasOnline) {
+    db.users.forEach(u => { if (u.id !== userId) emitToUser(u.id, 'presence:update', { userId, online: true }); });
+  }
 
   // ---- Conversations: rooms + messaging ----
   socket.on('conversation:join', ({ conversationId }) => {
@@ -490,20 +828,30 @@ io.on('connection', (socket) => {
     socket.leave('conversation:' + conversationId);
   });
 
-  socket.on('message:send', ({ conversationId, body }, ack) => {
+  socket.on('message:send', ({ conversationId, body, attachment: rawAttachment }, ack) => {
     ack = typeof ack === 'function' ? ack : () => {};
     const convo = db.conversations.get(conversationId);
     if (!convo || !convo.participantIds.includes(userId)) {
       return ack({ ok: false, error: 'Conversation not found.' });
     }
-    if (!body || !String(body).trim()) {
+    const trimmedBody = body ? String(body).trim() : '';
+
+    let attachment = null;
+    if (rawAttachment) {
+      const parsed = parseAttachment(rawAttachment);
+      if (parsed.error) return ack({ ok: false, error: parsed.error });
+      attachment = parsed.attachment;
+    }
+
+    if (!trimmedBody && !attachment) {
       return ack({ ok: false, error: 'Message cannot be empty.' });
     }
     const message = {
       id: uuid(),
       conversationId,
       senderId: userId,
-      body: String(body).trim(),
+      body: trimmedBody,
+      attachment,
       createdAt: Date.now(),
       readBy: [userId],
     };
@@ -515,6 +863,7 @@ io.on('connection', (socket) => {
       senderId: userId,
       sender: publicUser(db.users.get(userId)),
       body: message.body,
+      attachment: message.attachment,
       createdAt: message.createdAt,
     };
 
@@ -556,19 +905,31 @@ io.on('connection', (socket) => {
   });
 
   // ---- 1:1 calls (WebRTC signaling relay) ----
+  // Only allow signaling between two users who actually share a conversation,
+  // so an authenticated user can't spam calls/signals at arbitrary others.
+  function shareConversation(otherUserId) {
+    return [...db.conversations.values()].some(
+      c => c.participantIds.includes(userId) && c.participantIds.includes(otherUserId)
+    );
+  }
   socket.on('call:invite', ({ toUserId, conversationId, video }) => {
+    if (!shareConversation(toUserId)) return;
     emitToUser(toUserId, 'call:incoming', { fromUserId: userId, conversationId, video: !!video });
   });
   socket.on('call:accept', ({ toUserId, conversationId }) => {
+    if (!shareConversation(toUserId)) return;
     emitToUser(toUserId, 'call:accepted', { fromUserId: userId, conversationId });
   });
   socket.on('call:reject', ({ toUserId, conversationId }) => {
+    if (!shareConversation(toUserId)) return;
     emitToUser(toUserId, 'call:rejected', { fromUserId: userId, conversationId });
   });
   socket.on('call:signal', ({ toUserId, data }) => {
+    if (!shareConversation(toUserId)) return;
     emitToUser(toUserId, 'call:signal', { fromUserId: userId, data });
   });
   socket.on('call:end', ({ toUserId }) => {
+    if (!shareConversation(toUserId)) return;
     emitToUser(toUserId, 'call:ended', { fromUserId: userId });
   });
 
@@ -590,6 +951,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('meeting:signal', ({ meetingId, toUserId, data }) => {
+    const meeting = db.meetings.get(meetingId);
+    if (!meeting || !meeting.active) return;
+    if (!meeting.participantIds.includes(userId) || !meeting.participantIds.includes(toUserId)) return;
     emitToUser(toUserId, 'meeting:signal', { fromUserId: userId, data });
   });
 
@@ -605,8 +969,9 @@ io.on('connection', (socket) => {
   // ---- Disconnect cleanup ----
   socket.on('disconnect', () => {
     removeOnline(userId, socket.id);
-    // Leave any active meetings this socket was part of if the user has no other sockets connected
+    // Last socket for this user going offline — tell everyone else.
     if (!isOnline(userId)) {
+      db.users.forEach(u => { if (u.id !== userId) emitToUser(u.id, 'presence:update', { userId, online: false }); });
       db.meetings.forEach(meeting => {
         if (meeting.participantIds.includes(userId)) {
           meeting.participantIds = meeting.participantIds.filter(id => id !== userId);
