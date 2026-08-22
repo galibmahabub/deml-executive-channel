@@ -15,6 +15,7 @@
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const http = require('http');
 const cors = require('cors');
 const bcrypt = require('bcryptjs'); // async .hash/.compare used below to avoid blocking the event loop
@@ -47,6 +48,92 @@ const db = {
 const passwordRequests = new Map(); // id -> { id, userId, newPassword, note, status, createdAt, resolvedAt }
 const profileRequests = new Map(); // id -> { id, name, email, phone, password, status, createdAt, resolvedAt }
 
+// =========================================================================
+// File-based persistence — saves the store above to a local JSON file so a
+// restart doesn't wipe every user, message, and login.
+//
+// What this covers: a crash-restart, or a Render free-tier sleep/wake
+// cycle, reuses the SAME container and disk — so this file survives those,
+// and is exactly what fixes "everything reset when the site woke back up."
+//
+// What this does NOT cover: an actual redeploy (pushing new code, or
+// clicking "Deploy latest commit") builds a brand-new container from
+// scratch on Render's free tier, and this file will NOT carry over —
+// there's no way to persist local files across a redeploy without a paid
+// persistent disk. If you need data to survive redeploys too, it has to
+// live in an external database (e.g. Render's free PostgreSQL) instead of
+// a local file. This section is a genuine improvement either way, and is
+// a drop-in stepping stone to a real database later — the load/save shape
+// here maps directly onto database reads/writes if you make that switch.
+// =========================================================================
+const DATA_DIR = path.join(__dirname, 'data');
+const DATA_FILE = path.join(DATA_DIR, 'store.json');
+
+function serializeState() {
+  return {
+    savedAt: Date.now(),
+    users: [...db.users.values()],
+    todos: [...db.todos.values()],
+    conversations: [...db.conversations.values()],
+    messages: [...db.messages.values()],
+    // No meeting survives a restart as "live" — nobody is actually
+    // connected via socket anymore once the process comes back up.
+    meetings: [...db.meetings.values()].map(m => ({ ...m, active: false })),
+    announcements: [...db.announcements.values()],
+    events: [...db.events.values()],
+    passwordRequests: [...passwordRequests.values()],
+    profileRequests: [...profileRequests.values()],
+  };
+}
+
+function saveState() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    // Write to a temp file then rename — an atomic swap, so a crash
+    // mid-write can never leave behind a half-written, unreadable file.
+    const tmpFile = DATA_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(serializeState()));
+    fs.renameSync(tmpFile, DATA_FILE);
+  } catch (e) {
+    console.error('Failed to save data file:', e.message);
+  }
+}
+
+function loadState() {
+  try {
+    if (!fs.existsSync(DATA_FILE)) return false;
+    const saved = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    (saved.users || []).forEach(u => db.users.set(u.id, u));
+    (saved.todos || []).forEach(t => db.todos.set(t.id, t));
+    (saved.conversations || []).forEach(c => db.conversations.set(c.id, c));
+    (saved.messages || []).forEach(m => db.messages.set(m.id, m));
+    (saved.meetings || []).forEach(m => db.meetings.set(m.id, m));
+    (saved.announcements || []).forEach(a => db.announcements.set(a.id, a));
+    (saved.events || []).forEach(e => db.events.set(e.id, e));
+    (saved.passwordRequests || []).forEach(r => passwordRequests.set(r.id, r));
+    (saved.profileRequests || []).forEach(r => profileRequests.set(r.id, r));
+    console.log('Restored saved data from data/store.json (' + db.users.size + ' users, saved ' + new Date(saved.savedAt).toLocaleString() + ').');
+    return true;
+  } catch (e) {
+    console.error('Failed to load data file, starting fresh:', e.message);
+    return false;
+  }
+}
+
+loadState();
+// Periodic autosave, so a hard crash loses at most a few seconds of data.
+setInterval(saveState, 15000);
+// Flush immediately on a graceful shutdown — this is what Render sends
+// right before it stops the process for a sleep/redeploy/restart, so this
+// is the save that actually matters most in practice.
+['SIGTERM', 'SIGINT'].forEach(sig => {
+  process.on(sig, () => {
+    console.log('\nReceived ' + sig + ', saving data before exit...');
+    saveState();
+    process.exit(0);
+  });
+});
+
 function publicUser(u) {
   if (!u) return null;
   return {
@@ -77,6 +164,7 @@ function seedPresident() {
     socialLinks: [],
   };
   db.users.set(user.id, user);
+  saveState(); // save immediately — this is a brand-new President account, don't risk losing it to the 15s window
 
   console.log('\n============================================');
   console.log(' President account created (first boot only)');
@@ -269,6 +357,7 @@ app.post('/api/executives', authMiddleware, requirePresident, async (req, res) =
     socialLinks: [],
   };
   db.users.set(user.id, user);
+  saveState();
   res.status(201).json(publicUser(user));
 });
 
@@ -287,6 +376,7 @@ app.delete('/api/executives/:id', authMiddleware, requirePresident, (req, res) =
   for (const ev of db.events.values()) {
     ev.attendeeIds = ev.attendeeIds.filter(id => id !== user.id);
   }
+  saveState();
   res.status(204).end();
 });
 
@@ -441,6 +531,7 @@ app.patch('/api/auth/password', authMiddleware, async (req, res) => {
   }
   if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters.' });
   u.passwordHash = await bcrypt.hash(newPassword, 10);
+  saveState();
   res.json({ ok: true });
 });
 
@@ -502,6 +593,7 @@ app.post('/api/password-requests/:id/resolve', authMiddleware, requirePresident,
   }
   request.newPassword = undefined; // never keep plaintext around after resolution
   request.resolvedAt = Date.now();
+  saveState();
   res.json(publicPasswordRequest(request));
 });
 
