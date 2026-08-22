@@ -1,4 +1,4 @@
-[DEPLOY.md](https://github.com/user-attachments/files/31122973/DEPLOY.md)
+[DEPLOY.md](https://github.com/user-attachments/files/31337690/DEPLOY.md)
 # Putting DEML Executive Channel online — for free
 
 This version serves the website AND the backend from one place, so you only
@@ -45,19 +45,34 @@ a `public` folder listed.
    - **Build Command**: `npm install`
    - **Start Command**: `node server.js`
    - **Instance Type**: choose **Free**
-5. Scroll down, click **Create Web Service**.
+5. Before creating the service, scroll to **Environment Variables** and add
+   one:
+   - **Key**: `JWT_SECRET`
+   - **Value**: any long, random string (30+ characters). You can generate
+     one at [randomkeygen.com](https://randomkeygen.com) or just mash your
+     keyboard for a while.
+
+   **This step matters.** Your code is in a *public* GitHub repo, and the
+   server has a fallback secret built in for local testing. If you skip
+   this, anyone who looks at your repo could use that fallback secret to
+   forge a login — including a President login. Setting your own secret
+   here closes that off.
+6. Scroll down, click **Create Web Service**.
 
 Render will now install everything and start your server — you'll see logs
 scrolling in the browser. This takes 2–5 minutes the first time.
 
-6. When it's done, look near the top of the page for your URL — it'll look
+7. When it's done, look near the top of the page for your URL — it'll look
    like:
    ```
    https://deml-executive-channel.onrender.com
    ```
-7. **Open that URL in your browser.** That's your live website.
-8. Look at the **Logs** tab in Render — the President username/password get
-   printed there, the same way they did on your PC. Copy them down.
+8. **Open that URL in your browser.** That's your live website.
+9. Look at the **Logs** tab in Render — the President username/password get
+   printed there, the same way they did on your PC. Copy them down. (If you
+   see a warning in the logs about `JWT_SECRET` not being set, go back and
+   add the environment variable from step 5, then trigger a redeploy from
+   the Render dashboard.)
 
 That's it — that URL now works for anyone, anywhere, at the same time,
 totally free.
