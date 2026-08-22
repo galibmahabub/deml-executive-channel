@@ -1,4 +1,4 @@
-[DEPLOY.md](https://github.com/user-attachments/files/31337690/DEPLOY.md)
+[DEPLOY.md](https://github.com/user-attachments/files/31337855/DEPLOY.md)
 # Putting DEML Executive Channel online — for free
 
 This version serves the website AND the backend from one place, so you only
@@ -24,6 +24,13 @@ place for that.
    - `server.js`
    - `package.json`
    - the whole `public` folder (with `index.html` inside it)
+
+   **Don't drag a `data` folder even if one exists on your PC** from
+   testing locally — it holds real (if locally-tested) passwords and
+   should never end up in a public GitHub repo. It's created automatically
+   on the server itself the first time it runs; you never need to upload
+   it. (If you've cloned this with `git`, the included `.gitignore`
+   already excludes it for you.)
 6. Scroll down, click **Commit changes**.
 
 Your code is now on GitHub. You should see `server.js`, `package.json`, and
@@ -85,14 +92,24 @@ totally free.
   to sleep to save resources (this is normal on the free tier). The next
   person to visit will wait about 30–50 seconds while it wakes up, then it's
   fast again.
-- **Data isn't permanent.** This app stores everything in memory (no
-  database). Every time it sleeps and wakes, or you redeploy, **all users,
-  messages, todos, and meetings reset** — including the President account,
-  which regenerates a new password each time (check the Logs tab again).
+- **Data now survives sleep/wake.** The app saves everything to a local
+  file (`data/store.json`) every 15 seconds and right before it goes to
+  sleep, then reloads it on wake — so users, messages, todos, meetings, and
+  the President account all survive a normal sleep/wake cycle now.
+- **Data still resets on redeploy.** A redeploy (pushing new code, or
+  "Deploy latest commit") builds a brand-new container from scratch on
+  Render's free tier, and that local file doesn't carry over — this is a
+  Render free-tier limitation, not something a code change on our end can
+  fix. If you push a new version of the site, expect the President account
+  to regenerate a new password again (check the Logs tab), same as before.
+- **Want data to survive redeploys too?** That needs an external database
+  instead of a local file — Render offers a free PostgreSQL tier for this
+  (its free databases expire after 90 days and need recreating). Ask if
+  you'd like help wiring that in; it's a bigger code change than this file.
 - If you outgrow the free tier later (want it always-on, or want data to
-  actually persist), that's when paid hosting or a real database comes in —
-  but you don't need any of that to get this online and working for free
-  right now.
+  actually persist through redeploys with no caveats), that's when paid
+  hosting or a real always-on database comes in — but you don't need any of
+  that to get this online and working for free right now.
 
 ## Updating your site later
 
