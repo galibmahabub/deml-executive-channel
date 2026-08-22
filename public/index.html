@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DEML Executive Channel</title>
+<title>DEML Student Body — NSU</title>
 <script>
 // Runs before anything paints. If a session looks valid, hide the landing
 // page immediately (via a class + CSS below) instead of letting the browser
@@ -22,25 +22,25 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --onyx: #0A0B0D;
-    --graphite: #15171B;
-    --panel: #101215;
-    --line: rgba(200,205,212,0.14);
-    --platinum: #C8CDD4;
-    --muted: #7B818C;
-    --gold: #4E9C7B;
-    --gold-bright: #6BC79A;
-    --danger: #B25050;
+    --onyx: #081A2E;
+    --graphite: #122C48;
+    --panel: #0B1F36;
+    --line: rgba(220,238,251,0.16);
+    --platinum: #DCEEFB;
+    --muted: #6F87A3;
+    --gold: #C9A227;
+    --gold-bright: #E8C468;
+    --danger: #8B1E3F;
 
     --display: 'Space Grotesk', sans-serif;
     --mono: 'IBM Plex Mono', monospace;
     --body: 'Inter', sans-serif;
 
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
-    --shadow-card: 0 4px 18px rgba(0,0,0,0.28);
-    --shadow-lift: 0 14px 34px rgba(0,0,0,0.45);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow-card: 0 4px 18px rgba(0,0,0,0.34);
+    --shadow-lift: 0 14px 34px rgba(0,0,0,0.5);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--onyx); color: var(--platinum); font-family: var(--body); overflow-x: hidden; cursor: none; }
@@ -48,13 +48,21 @@
   a { color: inherit; }
   .hidden { display: none !important; }
 
-  /* ---------- Custom signal-pulse cursor ---------- */
-  #signal-cursor { position: fixed; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: 9999; }
-  .signal-dot { position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 8px 2px rgba(107,199,154,0.6); }
-  .signal-ring { position: absolute; top: 0; left: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 1px solid rgba(107,199,154,0.55); animation: ambient-pulse 2.6s ease-out infinite; }
-  @keyframes ambient-pulse { 0% { transform: scale(0.4); opacity: 0.9; } 100% { transform: scale(1.6); opacity: 0; } }
-  .click-burst { position: fixed; top: 0; left: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 1.5px solid var(--gold-bright); pointer-events: none; z-index: 9998; animation: burst 0.7s cubic-bezier(.2,.7,.2,1) forwards; }
-  @keyframes burst { 0% { transform: scale(0.3); opacity: 1; } 100% { transform: scale(6); opacity: 0; } }
+  /* ---------- Custom cursor: rotating seal + breathing ink ring ---------- */
+  #signal-cursor { position: fixed; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: 9999; transition: transform 0.09s cubic-bezier(.16,.84,.44,1); }
+  .signal-dot { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 6px 1px rgba(232,196,104,0.6); z-index: 2; }
+  .ink-ring { position: absolute; top: 0; left: 0; width: 30px; height: 30px; margin: -15px 0 0 -15px; }
+  .ink-ring .ring-line { fill: none; stroke: rgba(232,196,104,0.55); stroke-width: 1; }
+  .ink-ring .ring-line.outer { animation: ink-breathe 3.2s ease-in-out infinite; transform-origin: 15px 15px; }
+  .ink-ring .ring-line.inner { stroke: rgba(232,196,104,0.32); stroke-dasharray: 2 4; animation: seal-rotate 16s linear infinite; transform-origin: 15px 15px; }
+  .ink-ring .nib { fill: rgba(232,196,104,0.7); animation: nib-glint 3.2s ease-in-out infinite; transform-origin: 15px 15px; }
+  @keyframes ink-breathe { 0%, 100% { transform: scale(1); opacity: 0.75; } 50% { transform: scale(1.22); opacity: 0.25; } }
+  @keyframes seal-rotate { to { transform: rotate(360deg); } }
+  @keyframes nib-glint { 0%, 100% { opacity: 0.85; } 50% { opacity: 0.35; } }
+  .click-burst { position: fixed; top: 0; left: 0; width: 12px; height: 12px; margin: -6px 0 0 -6px; pointer-events: none; z-index: 9998; }
+  .click-burst .drop { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 1.2px solid var(--gold-bright); border-radius: 50% 50% 50% 0; animation: ink-splash 0.6s cubic-bezier(.2,.7,.2,1) forwards; }
+  .click-burst .drop:nth-child(2) { animation-delay: 0.06s; opacity: 0.6; }
+  @keyframes ink-splash { 0% { transform: rotate(-45deg) scale(0.2); opacity: 1; } 100% { transform: rotate(-45deg) scale(4.5); opacity: 0; } }
 
   /* ---------- Ticker ---------- */
   .ticker { position: relative; z-index: 2; overflow: hidden; border-bottom: 1px solid var(--line); background: var(--graphite); white-space: nowrap; padding: 8px 0; }
@@ -68,8 +76,8 @@
   #space-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: block; }
   @media (prefers-reduced-motion: reduce) { #space-bg { display: none; } }
 
-  .backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(600px circle at 82% 18%, rgba(78,156,123,0.10), transparent 60%), radial-gradient(500px circle at 10% 70%, rgba(78,156,123,0.06), transparent 60%); }
-  .grid-lines { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-image: linear-gradient(rgba(200,205,212,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(200,205,212,0.035) 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(circle at 60% 30%, black, transparent 75%); animation: grid-pan 50s linear infinite; }
+  .backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(600px circle at 82% 18%, rgba(201,162,39,0.10), transparent 60%), radial-gradient(500px circle at 10% 70%, rgba(201,162,39,0.06), transparent 60%); }
+  .grid-lines { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-image: linear-gradient(rgba(220,238,251,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(220,238,251,0.035) 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(circle at 60% 30%, black, transparent 75%); animation: grid-pan 50s linear infinite; }
   @keyframes grid-pan { from { background-position: 0 0, 0 0; } to { background-position: 64px 64px, 64px 64px; } }
 
   header, main, footer, #dashboard { position: relative; z-index: 1; }
@@ -95,14 +103,14 @@
 
   .btn { font-family: var(--body); font-weight: 600; font-size: 0.88rem; border: 1px solid var(--line); background: transparent; color: var(--platinum); padding: 11px 24px; border-radius: var(--radius-sm); letter-spacing: 0.03em; transition: border-color 0.25s ease, transform 0.15s ease, background 0.25s ease, box-shadow 0.25s ease; cursor: none; }
   .btn:hover { border-color: var(--gold); transform: translateY(-1px); }
-  .btn.solid { background: var(--gold); border-color: var(--gold); color: #16130c; box-shadow: 0 4px 16px rgba(78,156,123,0.22); }
-  .btn.solid:hover { background: var(--gold-bright); border-color: var(--gold-bright); box-shadow: 0 6px 22px rgba(107,199,154,0.32); }
+  .btn.solid { background: var(--gold); border-color: var(--gold); color: #2B0F14; box-shadow: 0 4px 16px rgba(201,162,39,0.22); }
+  .btn.solid:hover { background: var(--gold-bright); border-color: var(--gold-bright); box-shadow: 0 6px 22px rgba(232,196,104,0.32); }
   .btn:active { transform: translateY(0) scale(0.97); }
   .btn { position: relative; overflow: hidden; }
-  .btn-ripple { position: absolute; border-radius: 50%; background: rgba(107,199,154,0.45); transform: scale(0); animation: ripple-out 0.6s ease-out forwards; pointer-events: none; }
+  .btn-ripple { position: absolute; border-radius: 50%; background: rgba(232,196,104,0.45); transform: scale(0); animation: ripple-out 0.6s ease-out forwards; pointer-events: none; }
   @keyframes ripple-out { to { transform: scale(1); opacity: 0; } }
 
-  #cursor-glow { position: fixed; top: 0; left: 0; width: 480px; height: 480px; margin: -240px 0 0 -240px; border-radius: 50%; background: radial-gradient(circle, rgba(78,156,123,0.05), transparent 70%); pointer-events: none; z-index: 0; transition: opacity 0.4s ease; opacity: 0; }
+  #cursor-glow { position: fixed; top: 0; left: 0; width: 480px; height: 480px; margin: -240px 0 0 -240px; border-radius: 50%; background: radial-gradient(circle, rgba(201,162,39,0.05), transparent 70%); pointer-events: none; z-index: 0; transition: opacity 0.4s ease; opacity: 0; }
 
   /* ---------- Global input baseline — every text/password input & textarea on the site,
      even ones not wrapped in .field (To-Do, Meeting, Manage Executives forms, etc.) ---------- */
@@ -113,12 +121,12 @@
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
   }
   input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus, textarea:focus {
-    border-color: var(--gold); box-shadow: 0 0 0 3px rgba(78,156,123,0.14);
+    border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,162,39,0.14);
   }
   input::placeholder, textarea::placeholder { color: var(--muted); }
   @media (hover: none) { #cursor-glow { display: none; } }
   .btn.small { padding: 7px 14px; font-size: 0.78rem; }
-  .btn.danger { border-color: var(--danger); color: #e0a2a2; }
+  .btn.danger { border-color: var(--danger); color: #d9a8b3; }
   .btn.danger:hover { background: var(--danger); color: #fff; }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
@@ -130,34 +138,47 @@
   .hero { position: relative; overflow: hidden; min-height: 72vh; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(24px, 5vw, 60px); align-items: center; padding: 90px clamp(24px, 6vw, 72px); }
   .hero-content { display: flex; flex-direction: column; align-items: flex-start; }
   .hero-glow { position: absolute; z-index: -1; border-radius: 50%; filter: blur(70px); pointer-events: none; }
-  .hero-glow-1 { width: 460px; height: 460px; top: -140px; right: 6%; background: radial-gradient(circle, rgba(78,156,123,0.24), transparent 70%); animation: glow-drift-1 17s ease-in-out infinite; }
-  .hero-glow-2 { width: 340px; height: 340px; bottom: -120px; left: 2%; background: radial-gradient(circle, rgba(78,156,123,0.15), transparent 70%); animation: glow-drift-2 21s ease-in-out infinite; }
+  .hero-glow-1 { width: 460px; height: 460px; top: -140px; right: 6%; background: radial-gradient(circle, rgba(201,162,39,0.24), transparent 70%); animation: glow-drift-1 17s ease-in-out infinite; }
+  .hero-glow-2 { width: 340px; height: 340px; bottom: -120px; left: 2%; background: radial-gradient(circle, rgba(201,162,39,0.15), transparent 70%); animation: glow-drift-2 21s ease-in-out infinite; }
   @keyframes glow-drift-1 { 0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.75; } 50% { transform: translate(-36px, 44px) scale(1.15); opacity: 1; } }
   @keyframes glow-drift-2 { 0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.55; } 50% { transform: translate(30px, -28px) scale(1.12); opacity: 0.9; } }
-  .eyebrow-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--gold-bright); margin-right: 9px; box-shadow: 0 0 6px 1px rgba(107,199,154,0.7); animation: eyebrow-pulse 2s ease-in-out infinite; vertical-align: middle; }
+  .eyebrow-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--gold-bright); margin-right: 9px; box-shadow: 0 0 6px 1px rgba(232,196,104,0.7); animation: eyebrow-pulse 2s ease-in-out infinite; vertical-align: middle; }
   @keyframes eyebrow-pulse { 0%, 100% { opacity: 0.6; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.15); } }
   .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; margin: 0 0 18px; opacity: 0; animation: fade-up 0.6s ease forwards; animation-delay: 0.1s; }
   .headline { font-family: var(--display); font-weight: 600; font-size: clamp(2.2rem, 4.4vw, 3.8rem); line-height: 1.08; margin: 0; letter-spacing: -0.01em; }
-  .headline .line { display: block; overflow: hidden; }
-  .headline .line span { display: inline-block; transform: translateY(100%); opacity: 0; filter: blur(6px); animation: rise-clear 0.75s cubic-bezier(.2,.7,.2,1) forwards; }
-  @keyframes rise-clear { to { transform: translateY(0); opacity: 1; filter: blur(0); } }
+  .headline .line { position: relative; display: block; overflow: hidden; clip-path: inset(0 100% 0 0); animation: unveil 0.85s cubic-bezier(.2,.7,.2,1) forwards; animation-delay: var(--line-delay, 0s); }
+  .headline .line::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 3px; background: linear-gradient(180deg, var(--gold-bright), var(--gold)); animation: wipe-bar 0.85s cubic-bezier(.2,.7,.2,1) forwards; animation-delay: var(--line-delay, 0s); }
+  @keyframes unveil { to { clip-path: inset(0 0 0 0); } }
+  @keyframes wipe-bar { 0% { left: 0; opacity: 1; } 95% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
   .subhead { font-size: clamp(1rem, 1.5vw, 1.15rem); color: var(--muted); max-width: 480px; margin: 26px 0 36px; line-height: 1.6; opacity: 0; animation: fade-up 0.7s ease forwards; animation-delay: 1.15s; }
   @keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
   .hero-actions { display: flex; gap: 14px; opacity: 0; animation: fade-up 0.7s ease forwards; animation-delay: 1.35s; }
   .hero-actions .btn.solid { animation: cta-breathe 3.4s ease-in-out 2.1s infinite; }
   @keyframes cta-breathe {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(107,199,154,0.35); }
-    50% { box-shadow: 0 0 0 8px rgba(107,199,154,0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232,196,104,0.35); }
+    50% { box-shadow: 0 0 0 8px rgba(232,196,104,0); }
   }
 
   /* ---------- Hero visual panel ---------- */
-  .hero-visual { position: relative; opacity: 0; animation: fade-up 0.8s ease forwards; animation-delay: 0.6s; }
-  .hero-panel { position: relative; background: rgba(16,18,21,0.6); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-lift); backdrop-filter: blur(6px); padding: 30px; transition: transform 0.3s ease-out, border-color 0.3s ease; transform-style: preserve-3d; will-change: transform; }
-  .hero-panel:hover { border-color: rgba(107,199,154,0.3); }
+  .hero-visual { position: relative; opacity: 0; clip-path: polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%); animation: panel-unlock 0.9s cubic-bezier(.2,.7,.2,1) forwards; animation-delay: 0.5s; }
+  @keyframes panel-unlock {
+    0% { opacity: 0; clip-path: polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%); }
+    1% { opacity: 1; }
+    100% { opacity: 1; clip-path: polygon(-10% -10%, 110% -10%, 110% 110%, -10% 110%); }
+  }
+  .hero-panel { position: relative; background: rgba(13,16,22,0.66); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-lift); backdrop-filter: blur(6px); padding: 30px; transition: transform 0.3s ease-out, border-color 0.3s ease; transform-style: preserve-3d; will-change: transform; }
+  .hero-panel::before, .hero-panel::after { content: ''; position: absolute; width: 16px; height: 16px; border: 1px solid rgba(201,162,39,0.55); pointer-events: none; transition: border-color 0.3s ease; }
+  .hero-panel::before { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+  .hero-panel::after { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+  .hero-panel:hover::before, .hero-panel:hover::after { border-color: var(--gold-bright); }
+  .hero-panel:hover { border-color: rgba(232,196,104,0.3); }
   .hero-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
   .hero-panel-head span { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; }
+  .hero-panel-head-right { display: flex; align-items: center; gap: 10px; }
+  .mini-seal { width: 16px; height: 16px; animation: seal-rotate 14s linear infinite; flex-shrink: 0; }
+  .mini-seal circle, .mini-seal path { stroke: rgba(232,196,104,0.6); }
   .hero-panel-live { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 0.68rem; color: var(--gold-bright); letter-spacing: 0.1em; }
-  .hero-panel-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 6px 1px rgba(107,199,154,0.7); animation: eyebrow-pulse 2s ease-in-out infinite; }
+  .hero-panel-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 6px 1px rgba(232,196,104,0.7); animation: eyebrow-pulse 2s ease-in-out infinite; }
   .hero-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 18px; }
   .hero-stat { border-top: 1px solid var(--line); padding-top: 14px; }
   .hero-stat .num { display: block; font-family: var(--display); font-size: clamp(1.5rem, 2.4vw, 2rem); font-weight: 700; color: var(--platinum); line-height: 1; }
@@ -170,13 +191,13 @@
   .hero-uptime-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; }
   .hero-uptime-head span:first-child { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
   .hero-uptime-head span:last-child { font-family: var(--mono); font-size: 0.72rem; color: var(--gold-bright); }
-  .hero-uptime-track { position: relative; height: 4px; background: rgba(200,205,212,0.08); overflow: hidden; }
+  .hero-uptime-track { position: relative; height: 4px; background: rgba(220,238,251,0.08); overflow: hidden; }
   .hero-uptime-fill { position: absolute; inset: 0; width: 99.98%; background: linear-gradient(90deg, var(--gold), var(--gold-bright)); animation: uptime-shimmer 3s ease-in-out infinite; }
   @keyframes uptime-shimmer { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
 
   .hero-feed { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 13px; }
   .hero-feed-item { display: flex; align-items: flex-start; gap: 10px; }
-  .hero-feed-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold-bright); margin-top: 6px; flex-shrink: 0; box-shadow: 0 0 5px 1px rgba(107,199,154,0.5); }
+  .hero-feed-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold-bright); margin-top: 6px; flex-shrink: 0; box-shadow: 0 0 5px 1px rgba(232,196,104,0.5); }
   .hero-feed-text { font-size: 0.8rem; color: var(--platinum); line-height: 1.4; }
   .hero-feed-text .muted-time { display: block; font-family: var(--mono); font-size: 0.65rem; color: var(--muted); letter-spacing: 0.06em; margin-top: 2px; text-transform: uppercase; }
   @media (max-width: 880px) {
@@ -189,10 +210,10 @@
   .channel { background: var(--onyx); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-card); padding: 38px 32px; opacity: 0; transform: translateY(20px); transition: background 0.3s ease, transform 0.35s cubic-bezier(.2,.7,.2,1), border-color 0.3s ease; position: relative; overflow: hidden; }
   .channel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--gold), var(--gold-bright)); transform: scaleX(0); transform-origin: left; transition: transform 0.4s cubic-bezier(.2,.7,.2,1); }
   .channel.visible { animation: fade-up 0.6s ease forwards; }
-  .channel:hover { background: var(--graphite); transform: translateY(-4px); border-color: rgba(107,199,154,0.3); }
+  .channel:hover { background: var(--graphite); transform: translateY(-4px); border-color: rgba(232,196,104,0.3); }
   .channel:hover::before { transform: scaleX(1); }
   .channel-icon { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
-  .channel:hover .channel-icon { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(78,156,123,0.08); }
+  .channel:hover .channel-icon { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201,162,39,0.08); }
   .channel-icon svg { width: 19px; height: 19px; stroke: var(--gold-bright); fill: none; stroke-width: 1.4; }
   .channel .idx { font-family: var(--mono); font-size: 0.75rem; color: var(--gold); letter-spacing: 0.1em; display: block; margin-bottom: 14px; }
   .channel h3 { font-family: var(--display); font-size: 1.2rem; font-weight: 600; margin: 0 0 10px; color: var(--platinum); }
@@ -211,7 +232,7 @@
   .section-title { font-family: var(--display); font-weight: 600; font-size: clamp(1.5rem, 2.6vw, 2.1rem); color: var(--platinum); margin: 0 0 10px; letter-spacing: -0.01em; }
   .section-sub { font-size: 0.95rem; color: var(--muted); max-width: 520px; line-height: 1.65; margin: 0; }
 
-  @keyframes icon-breathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(78,156,123,0); } 50% { box-shadow: 0 0 0 5px rgba(78,156,123,0.06); } }
+  @keyframes icon-breathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(201,162,39,0); } 50% { box-shadow: 0 0 0 5px rgba(201,162,39,0.06); } }
   .channel-icon, .security-icon { animation: icon-breathe 3.6s ease-in-out infinite; }
   .channel:nth-child(2) .channel-icon, .security-item:nth-child(2) .security-icon { animation-delay: 0.5s; }
   .channel:nth-child(3) .channel-icon, .security-item:nth-child(3) .security-icon { animation-delay: 1s; }
@@ -225,7 +246,7 @@
   .protocol-step.visible { animation: fade-up 0.6s ease forwards; }
   .protocol-step:hover { transform: translateY(-3px); }
   .protocol-num { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: var(--onyx); border: 1px solid var(--gold); color: var(--gold-bright); font-family: var(--mono); font-size: 0.85rem; margin-bottom: 26px; transition: box-shadow 0.3s ease; }
-  .protocol-step:hover .protocol-num { box-shadow: 0 0 0 5px rgba(78,156,123,0.1); }
+  .protocol-step:hover .protocol-num { box-shadow: 0 0 0 5px rgba(201,162,39,0.1); }
   .protocol-step h3 { font-family: var(--display); font-size: 1.12rem; font-weight: 600; color: var(--platinum); margin: 0 0 10px; }
   .protocol-step p { font-size: 0.9rem; color: var(--muted); line-height: 1.65; margin: 0; }
   @media (max-width: 760px) {
@@ -238,9 +259,9 @@
   .security-grid { margin-top: 60px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
   .security-item { background: var(--onyx); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-card); padding: 32px 28px; opacity: 0; transform: translateY(20px); transition: background 0.3s ease, transform 0.35s cubic-bezier(.2,.7,.2,1), border-color 0.3s ease; }
   .security-item.visible { animation: fade-up 0.6s ease forwards; }
-  .security-item:hover { background: var(--graphite); transform: translateY(-4px); border-color: rgba(107,199,154,0.3); }
+  .security-item:hover { background: var(--graphite); transform: translateY(-4px); border-color: rgba(232,196,104,0.3); }
   .security-icon { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
-  .security-item:hover .security-icon { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(78,156,123,0.08); }
+  .security-item:hover .security-icon { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201,162,39,0.08); }
   .security-icon svg { width: 19px; height: 19px; stroke: var(--gold-bright); fill: none; stroke-width: 1.4; }
   .security-item h4 { font-family: var(--display); font-size: 1rem; font-weight: 600; color: var(--platinum); margin: 0 0 8px; }
   .security-item p { font-size: 0.86rem; color: var(--muted); line-height: 1.65; margin: 0; }
@@ -263,7 +284,7 @@
   .field { margin-bottom: 22px; }
   .field label { display: block; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 9px; }
   .field input, .field textarea, .field select { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(255,255,255,0.02); font-family: var(--body); font-size: 1rem; padding: 12px 14px; color: var(--platinum); outline: none; transition: border-color 0.25s ease, box-shadow 0.25s ease; resize: vertical; }
-  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(78,156,123,0.14); }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,162,39,0.14); }
 
   .pw-wrap { position: relative; }
   .pw-wrap input { padding-right: 58px; }
@@ -280,9 +301,17 @@
 
   .exec-list { margin-top: 26px; }
   .exec-row { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 16px; background: var(--graphite); border: 1px solid var(--line); border-radius: var(--radius-sm); margin-bottom: 8px; transition: border-color 0.2s ease, transform 0.2s ease; }
-  .exec-row:hover { border-color: rgba(107,199,154,0.35); transform: translateY(-1px); }
+  .exec-row:hover { border-color: rgba(232,196,104,0.35); transform: translateY(-1px); }
   .exec-row .name { font-family: var(--display); font-size: 0.94rem; color: var(--platinum); }
   .exec-row .desig { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; }
+
+  /* Presence / active status */
+  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); opacity: 0.5; flex-shrink: 0; }
+  .status-dot.online { background: #e8c468; opacity: 1; box-shadow: 0 0 0 2px rgba(232,196,104,0.18); }
+  .status-label { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+  .status-label.online { color: #e8c468; }
+  .msg-name-row { display: flex; align-items: center; gap: 7px; }
+  .thread-status { display: flex; align-items: center; gap: 6px; margin-left: 10px; }
 
   /* ---------- Dashboard shell ---------- */
   #dashboard { min-height: 100vh; display: flex; flex-direction: column; }
@@ -298,7 +327,7 @@
   .dash-tab { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: none; border: none; border-left: 2px solid transparent; padding: 11px 12px; border-radius: var(--radius-sm); cursor: none; transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease; }
   .dash-tab svg { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.4; }
   .dash-tab:hover { color: var(--platinum); background: rgba(255,255,255,0.03); }
-  .dash-tab.active { color: var(--gold-bright); background: rgba(107,199,154,0.08); border-left-color: var(--gold-bright); }
+  .dash-tab.active { color: var(--gold-bright); background: rgba(232,196,104,0.08); border-left-color: var(--gold-bright); }
 
   .dash-body { flex: 1; overflow-y: auto; padding: clamp(24px, 4vw, 48px); }
   .dash-body > .dash-panel { max-width: 1100px; margin: 0 auto; }
@@ -315,10 +344,18 @@
   .social-row button { flex-shrink: 0; }
 
   /* Todo */
+  .announcement-card { padding: 16px 18px; background: var(--graphite); border: 1px solid var(--line); border-radius: var(--radius-sm); margin-bottom: 10px; transition: border-color 0.2s ease, transform 0.2s ease; }
+  .announcement-card:hover { border-color: rgba(232,196,104,0.3); transform: translateY(-1px); }
+  .announcement-card .a-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .announcement-card .a-title { font-family: var(--display); font-size: 1rem; color: var(--platinum); }
+  .announcement-card .a-meta { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); letter-spacing: 0.05em; white-space: nowrap; }
+  .announcement-card .a-body { font-size: 0.9rem; color: var(--platinum); line-height: 1.5; white-space: pre-wrap; }
+  .announcement-card .a-del { background: none; border: none; color: var(--muted); font-size: 0.78rem; cursor: none; margin-top: 10px; padding: 0; }
+  .announcement-card .a-del:hover { color: var(--danger); }
   .todo-add { display: flex; gap: 10px; margin-bottom: 20px; }
   .todo-add input { flex: 1; }
   .todo-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: var(--graphite); border: 1px solid var(--line); border-radius: var(--radius-sm); margin-bottom: 8px; transition: border-color 0.2s ease, transform 0.2s ease; }
-  .todo-row:hover { border-color: rgba(107,199,154,0.3); transform: translateY(-1px); }
+  .todo-row:hover { border-color: rgba(232,196,104,0.3); transform: translateY(-1px); }
   .todo-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--gold); cursor: none; }
   .todo-row .content { flex: 1; font-size: 0.95rem; }
   .todo-row.done { opacity: 0.65; }
@@ -339,11 +376,50 @@
   .msg-thread-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--line); }
   .msg-scroll { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
   .bubble { max-width: 70%; padding: 10px 14px; border-radius: 3px; font-size: 0.9rem; line-height: 1.45; }
-  .bubble.mine { align-self: flex-end; background: var(--gold); color: #16130c; }
+  .msg-input-row { display: flex; align-items: center; gap: 8px; }
+  .attach-preview { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-top: 1px solid var(--line); }
+  .attach-chip { font-size: 0.82rem; opacity: 0.85; }
+  .attach-size { opacity: 0.6; }
+  .attach-clear { background: none; border: none; cursor: pointer; font-size: 0.85rem; opacity: 0.7; }
+  .attach-clear:hover { opacity: 1; }
+  .attach-block { margin-top: 6px; }
+  .attach-image { max-width: 220px; max-height: 220px; border-radius: 4px; display: block; }
+  .attach-file-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 4px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); font-size: 0.82rem; text-decoration: none; color: inherit; }
+  .search-box { width: 100%; max-width: 480px; padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--graphite); color: var(--platinum); font-family: var(--body); font-size: 0.92rem; }
+  .search-box:focus { outline: none; border-color: var(--gold-bright); }
+  .search-result { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-top: 12px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease; }
+  .search-result:hover { border-color: var(--gold-bright); background: rgba(232,196,104,0.05); }
+  .sr-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; font-size: 0.7rem; }
+  .sr-tag { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold-bright); }
+  .sr-context { color: var(--muted); }
+  .sr-time { color: var(--muted); margin-left: auto; }
+  .sr-title { font-weight: 600; margin-bottom: 4px; }
+  .sr-body { font-size: 0.88rem; line-height: 1.5; color: var(--platinum); }
+  .sr-body mark, .sr-title mark { background: var(--gold-bright); color: #2B0F14; padding: 0 2px; border-radius: 2px; }
+  .announcement-card.flash { animation: flash-highlight 1.5s ease; }
+
+  .event-card { padding: 16px 18px; background: var(--graphite); border: 1px solid var(--line); border-radius: var(--radius-sm); margin-bottom: 10px; transition: border-color 0.2s ease, transform 0.2s ease; }
+  .event-card:hover { border-color: rgba(232,196,104,0.3); transform: translateY(-1px); }
+  .event-card.past { opacity: 0.55; }
+  .event-card .e-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .event-card .e-title { font-family: var(--display); font-size: 1rem; color: var(--platinum); }
+  .event-card .e-when { font-family: var(--mono); font-size: 0.68rem; color: var(--gold-bright); letter-spacing: 0.05em; white-space: nowrap; }
+  .event-card.past .e-when { color: var(--muted); }
+  .event-card .e-meta { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 8px; }
+  .event-card .e-body { font-size: 0.9rem; color: var(--platinum); line-height: 1.5; white-space: pre-wrap; margin-bottom: 10px; }
+  .event-card .e-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .event-card .e-attendees { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.04em; }
+  .event-card .e-actions { display: flex; align-items: center; gap: 14px; }
+  .event-card .e-del { background: none; border: none; color: var(--muted); font-size: 0.78rem; cursor: none; padding: 0; }
+  .event-card .e-del:hover { color: var(--danger); }
+  .btn.rsvp.going { background: var(--gold); border-color: var(--gold); color: #2B0F14; }
+  .btn.rsvp.going:hover { background: var(--gold-bright); border-color: var(--gold-bright); }
+  @keyframes flash-highlight { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 2px var(--gold-bright); } }
+  .bubble.mine { align-self: flex-end; background: var(--gold); color: #2B0F14; }
   .bubble.theirs { align-self: flex-start; background: var(--graphite); border: 1px solid var(--line); }
   .bubble .meta { display: block; margin-top: 4px; font-family: var(--mono); font-size: 0.62rem; opacity: 0.75; text-align: right; }
   .tick { margin-left: 4px; }
-  .tick.read { color: #16130c; font-weight: 700; }
+  .tick.read { color: #2B0F14; font-weight: 700; }
   .msg-input-row { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--line); }
   .msg-input-row input { flex: 1; }
   .typing-note { font-family: var(--mono); font-size: 0.66rem; color: var(--gold); padding: 0 20px 8px; min-height: 14px; }
@@ -371,7 +447,7 @@
 
   .audio-call-visual { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
   .audio-call-avatar { width: 108px; height: 108px; border-radius: 50%; background: var(--graphite); border: 1px solid var(--gold); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 2.1rem; font-weight: 600; color: var(--gold-bright); animation: audio-pulse 2.2s ease-in-out infinite; }
-  @keyframes audio-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(107,199,154,0.3); } 50% { box-shadow: 0 0 0 14px rgba(107,199,154,0); } }
+  @keyframes audio-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(232,196,104,0.3); } 50% { box-shadow: 0 0 0 14px rgba(232,196,104,0); } }
   .audio-call-name { font-family: var(--display); font-size: 1.2rem; font-weight: 600; color: var(--platinum); }
   .audio-call-sub { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); letter-spacing: 0.06em; }
 
@@ -418,7 +494,7 @@
   html.deml-restoring #landing-footer { display: none !important; }
   html.deml-restoring #boot-loading { display: flex; }
   .dash-tab { position: relative; }
-  .tab-badge { position: absolute; top: 4px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 6px 1px rgba(107,199,154,0.7); display: none; }
+  .tab-badge { position: absolute; top: 4px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 6px 1px rgba(232,196,104,0.7); display: none; }
   .tab-badge.show { display: block; animation: eyebrow-pulse 2s ease-in-out infinite; }
 </style>
 </head>
@@ -426,7 +502,14 @@
 <div id="boot-loading"><div class="boot-mark"></div><div class="boot-label">Restoring session…</div></div>
 
 <canvas id="space-bg"></canvas>
-<div id="signal-cursor"><div class="signal-ring"></div><div class="signal-dot"></div></div>
+<div id="signal-cursor">
+  <svg class="ink-ring" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+    <circle class="ring-line outer" cx="15" cy="15" r="13"/>
+    <circle class="ring-line inner" cx="15" cy="15" r="9"/>
+    <path class="nib" d="M15 2 L17.2 6.3 L15 10.6 L12.8 6.3 Z"/>
+  </svg>
+  <div class="signal-dot"></div>
+</div>
 <div class="backdrop"></div>
 <div class="grid-lines"></div>
 <div id="cursor-glow"></div>
@@ -436,12 +519,12 @@
 <header id="landing-header">
   <div class="logo">
     <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle class="logo-ring" cx="16" cy="16" r="15" stroke="#4E9C7B" stroke-width="1.2"/>
-      <circle class="logo-dot" cx="16" cy="16" r="2.4" fill="#6BC79A"/>
-      <path class="logo-arc" d="M16 6.5a9.5 9.5 0 0 1 9.5 9.5" stroke="#4E9C7B" stroke-width="1.2" stroke-linecap="round"/>
-      <path class="logo-arc" d="M16 3.5a12.5 12.5 0 0 1 12.5 12.5" stroke="#4E9C7B" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
+      <circle class="logo-ring" cx="16" cy="16" r="15" stroke="#C9A227" stroke-width="1.2"/>
+      <circle class="logo-dot" cx="16" cy="16" r="2.4" fill="#E8C468"/>
+      <path class="logo-arc" d="M16 6.5a9.5 9.5 0 0 1 9.5 9.5" stroke="#C9A227" stroke-width="1.2" stroke-linecap="round"/>
+      <path class="logo-arc" d="M16 3.5a12.5 12.5 0 0 1 12.5 12.5" stroke="#C9A227" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
     </svg>
-    <div class="logo-text">DEML<small>EXECUTIVE&nbsp;CHANNEL</small></div>
+    <div class="logo-text">DEML<small>STUDENT&nbsp;BODY&nbsp;·&nbsp;NSU</small></div>
   </div>
   <div class="header-actions">
     <button class="btn-ghost" id="open-president">President Access</button>
@@ -455,16 +538,20 @@
     <div class="hero-content">
       <p class="eyebrow"><span class="eyebrow-dot"></span>Verified network · By invitation only</p>
       <h1 class="headline" id="headline"></h1>
-      <p class="subhead">DEML Executive Channel connects verified leaders for real-time briefings, direct conversation, and President-hosted meetings — no public feed, no delay, no noise.</p>
+      <p class="subhead">DEML Student Body connects verified members for real-time briefings, direct conversation, and President-hosted meetings — no public feed, no delay, no noise.</p>
       <div class="hero-actions">
         <button class="btn solid" id="open-signin-2">Sign in</button>
+        <button class="btn" id="open-profile-request">Request a profile</button>
       </div>
     </div>
     <div class="hero-visual">
       <div class="hero-panel">
         <div class="hero-panel-head">
           <span>Channel status</span>
-          <span class="hero-panel-live">Live</span>
+          <div class="hero-panel-head-right">
+            <svg class="mini-seal" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke-width="1"/><circle cx="16" cy="16" r="9" stroke-width="0.7" opacity="0.6"/><path d="M16 3v4M16 25v4M3 16h4M25 16h4" stroke-width="1" opacity="0.7"/></svg>
+            <span class="hero-panel-live">Live</span>
+          </div>
         </div>
         <div class="hero-stats">
           <div class="hero-stat"><span class="num">1<span class="unit">of 1</span></span><span class="lbl">President</span></div>
@@ -472,7 +559,7 @@
           <div class="hero-stat"><span class="num">0<span class="unit">ms</span></span><span class="lbl">Public delay</span></div>
           <div class="hero-stat"><span class="num">24<span class="unit">/7</span></span><span class="lbl">Access window</span></div>
           <div class="hero-stat"><span class="num">100<span class="unit">%</span></span><span class="lbl">Invite-only</span></div>
-          <div class="hero-stat"><span class="num">0<span class="unit">public</span></span><span class="lbl">Feed entries</span></div>
+          <div class="hero-stat"><span class="num" id="stat-profiles-num">0</span><span class="lbl">Profiles created</span></div>
         </div>
         <div class="hero-uptime">
           <div class="hero-uptime-head"><span>Channel uptime</span><span>99.98%</span></div>
@@ -545,15 +632,15 @@
 </main>
 
 <footer id="landing-footer">
-  <span>© 2026 DEML EXECUTIVE CHANNEL</span>
-  <span>ACCESS BY INVITATION</span>
+  <span>© 2026 DEML STUDENT BODY, NSU</span>
+  <span>Website designed, developed &amp; maintained by GALIB</span>
 </footer>
 
 <!-- ---------- Sign-in overlay (Executives) ---------- -->
 <div class="overlay" id="overlay">
   <div class="panel">
     <button class="panel-close" id="close-signin" aria-label="Close">&times;</button>
-    <p class="panel-eyebrow">DEML Executive Channel</p>
+    <p class="panel-eyebrow">DEML Student Body</p>
     <h2 class="panel-title">Sign in</h2>
     <form id="auth-form">
       <div class="field"><label for="username">Username</label><input id="username" type="text" autocomplete="username" required /></div>
@@ -569,9 +656,9 @@
   <div class="panel panel-president">
     <button class="panel-close" id="close-president" aria-label="Close">&times;</button>
     <div class="seal"><svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="18" stroke="#4E9C7B" stroke-width="1"/>
-      <circle cx="20" cy="20" r="13" stroke="#4E9C7B" stroke-width="0.6" opacity="0.6"/>
-      <path d="M20 10 L23 17 L30.5 17.5 L24.8 22.3 L26.8 29.5 L20 25.3 L13.2 29.5 L15.2 22.3 L9.5 17.5 L17 17 Z" fill="#4E9C7B" opacity="0.9"/>
+      <circle cx="20" cy="20" r="18" stroke="#C9A227" stroke-width="1"/>
+      <circle cx="20" cy="20" r="13" stroke="#C9A227" stroke-width="0.6" opacity="0.6"/>
+      <path d="M20 10 L23 17 L30.5 17.5 L24.8 22.3 L26.8 29.5 L20 25.3 L13.2 29.5 L15.2 22.3 L9.5 17.5 L17 17 Z" fill="#C9A227" opacity="0.9"/>
     </svg></div>
     <p class="panel-eyebrow">Office of the President</p>
     <h2 class="panel-title">President Access</h2>
@@ -586,17 +673,35 @@
   </div>
 </div>
 
+<!-- ---------- Request a Profile overlay (public — not self-registration) ---------- -->
+<div class="overlay" id="profile-request-overlay">
+  <div class="panel">
+    <button class="panel-close" id="close-profile-request" aria-label="Close">&times;</button>
+    <p class="panel-eyebrow">DEML Student Body</p>
+    <h2 class="panel-title">Request a profile</h2>
+    <p class="president-note">This doesn't create an account — it sends your details to the President for review. They'll reach out to you directly to confirm and finish setting up access.</p>
+    <form id="profile-request-form">
+      <div class="field"><label for="pr-name">Full name</label><input id="pr-name" type="text" autocomplete="name" required /></div>
+      <div class="field"><label for="pr-email">Email</label><input id="pr-email" type="email" autocomplete="email" required /></div>
+      <div class="field"><label for="pr-phone">Phone number</label><input id="pr-phone" type="tel" autocomplete="tel" required /></div>
+      <div class="field"><label for="pr-password">Choose a password</label><div class="pw-wrap"><input id="pr-password" type="password" autocomplete="new-password" required minlength="8" /><button type="button" class="pw-toggle" data-target="pr-password" tabindex="-1">Show</button></div></div>
+      <p class="form-status" id="profile-request-status"></p>
+      <button type="submit" class="btn solid" id="profile-request-submit"><span class="submit-ring"></span><span class="label">Send request</span></button>
+    </form>
+  </div>
+</div>
+
 <!-- ---------- Dashboard (post-login) ---------- -->
 <div id="dashboard" class="hidden">
   <div class="dash-top">
     <div class="logo">
       <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle class="logo-ring" cx="16" cy="16" r="15" stroke="#4E9C7B" stroke-width="1.2"/>
-        <circle class="logo-dot" cx="16" cy="16" r="2.4" fill="#6BC79A"/>
-        <path class="logo-arc" d="M16 6.5a9.5 9.5 0 0 1 9.5 9.5" stroke="#4E9C7B" stroke-width="1.2" stroke-linecap="round"/>
-        <path class="logo-arc" d="M16 3.5a12.5 12.5 0 0 1 12.5 12.5" stroke="#4E9C7B" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
+        <circle class="logo-ring" cx="16" cy="16" r="15" stroke="#C9A227" stroke-width="1.2"/>
+        <circle class="logo-dot" cx="16" cy="16" r="2.4" fill="#E8C468"/>
+        <path class="logo-arc" d="M16 6.5a9.5 9.5 0 0 1 9.5 9.5" stroke="#C9A227" stroke-width="1.2" stroke-linecap="round"/>
+        <path class="logo-arc" d="M16 3.5a12.5 12.5 0 0 1 12.5 12.5" stroke="#C9A227" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
       </svg>
-      <div class="logo-text">DEML<small>EXECUTIVE&nbsp;CHANNEL</small></div>
+      <div class="logo-text">DEML<small>STUDENT&nbsp;BODY&nbsp;·&nbsp;NSU</small></div>
     </div>
     <div class="dash-user">
       <div class="who"><div class="n" id="dash-user-name"></div><div class="d" id="dash-user-desig"></div></div>
@@ -611,6 +716,14 @@
         <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"/></svg>
         <span>Profile</span><span class="tab-badge" id="badge-profile"></span>
       </button>
+      <button class="dash-tab" data-tab="announcements">
+        <svg viewBox="0 0 24 24"><path d="M4 10v4a2 2 0 0 0 2 2h1l4 4V4L7 8H6a2 2 0 0 0-2 2z"/><path d="M17 8a4 4 0 0 1 0 8"/></svg>
+        <span>Announcements</span><span class="tab-badge" id="badge-announcements"></span>
+      </button>
+      <button class="dash-tab" data-tab="events">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>
+        <span>Events</span><span class="tab-badge" id="badge-events"></span>
+      </button>
       <button class="dash-tab" data-tab="todo">
         <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l2.5 2.5L16 9"/></svg>
         <span>To-Do</span><span class="tab-badge" id="badge-todo"></span>
@@ -618,6 +731,10 @@
       <button class="dash-tab" data-tab="messages">
         <svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4V5z"/></svg>
         <span>Messages</span><span class="tab-badge" id="badge-messages"></span>
+      </button>
+      <button class="dash-tab" data-tab="search">
+        <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
+        <span>Search</span>
       </button>
       <button class="dash-tab" data-tab="meeting">
         <svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="1"/><path d="M16 10l5-3v10l-5-3"/></svg>
@@ -658,6 +775,34 @@
       <div class="exec-list" id="password-section"></div>
     </div>
 
+    <!-- Announcements -->
+    <div class="dash-panel" id="panel-announcements">
+      <h2 class="section-title">Announcements</h2>
+      <form id="announcement-form" class="meeting-host-form" style="display:none;flex-direction:column;align-items:stretch;">
+        <input type="text" id="announcement-title" placeholder="Title" required />
+        <textarea id="announcement-body" rows="3" placeholder="Write an announcement for all executives..." required style="width:100%;resize:vertical;font-family:var(--body);"></textarea>
+        <button class="btn solid" type="submit" style="width:auto;padding:11px 22px;align-self:flex-start;">Post announcement</button>
+      </form>
+      <p class="form-status" id="announcement-status"></p>
+      <div id="announcement-list"></div>
+    </div>
+
+    <!-- Events -->
+    <div class="dash-panel" id="panel-events">
+      <h2 class="section-title">Events</h2>
+      <form id="event-form" class="meeting-host-form" style="display:none;flex-direction:column;align-items:stretch;">
+        <input type="text" id="event-title" placeholder="Event title" required />
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <input type="datetime-local" id="event-starts" required style="flex:1;min-width:180px;" />
+          <input type="text" id="event-location" placeholder="Location (optional)" style="flex:1;min-width:180px;" />
+        </div>
+        <textarea id="event-description" rows="3" placeholder="Details about the event..." style="width:100%;resize:vertical;font-family:var(--body);"></textarea>
+        <button class="btn solid" type="submit" style="width:auto;padding:11px 22px;align-self:flex-start;">Post event</button>
+      </form>
+      <p class="form-status" id="event-status"></p>
+      <div id="event-list"></div>
+    </div>
+
     <!-- To-Do -->
     <div class="dash-panel" id="panel-todo">
       <h2 class="section-title">To-Do</h2>
@@ -688,6 +833,14 @@
       <div id="meeting-list"></div>
     </div>
 
+    <!-- Search -->
+    <div class="dash-panel" id="panel-search">
+      <h2 class="section-title">Search</h2>
+      <input type="text" id="search-input" class="search-box" placeholder="Search your messages and announcements…" autocomplete="off" />
+      <div id="search-status" class="president-note" style="margin:10px 0 0"></div>
+      <div id="search-results"></div>
+    </div>
+
     <!-- Manage Executives (President only) -->
     <div class="dash-panel" id="panel-execs">
       <h2 class="section-title">Manage Executives</h2>
@@ -704,6 +857,12 @@
         <h3 style="font-family:var(--display);font-size:1.05rem;font-weight:600;margin:0 0 6px;">Password change requests</h3>
         <p class="president-note" style="margin:0 0 18px;">Executives cannot change their own password directly. When they request a new one below, approve it to set that password permanently, or deny it.</p>
         <div id="password-requests-list"></div>
+      </div>
+
+      <div class="exec-list" id="profile-requests-section">
+        <h3 style="font-family:var(--display);font-size:1.05rem;font-weight:600;margin:0 0 6px;">Profile requests</h3>
+        <p class="president-note" style="margin:0 0 18px;">People who don't have an account yet can request one from the landing page. Review their details below, contact them directly, then add them from "Add executive" above once confirmed.</p>
+        <div id="profile-requests-list"></div>
       </div>
     </div>
   </div>
@@ -783,6 +942,7 @@ window.addEventListener('mousedown', (e) => {
   const burst = document.createElement('div');
   burst.className = 'click-burst';
   burst.style.left = e.clientX + 'px'; burst.style.top = e.clientY + 'px';
+  burst.innerHTML = '<span class="drop"></span><span class="drop"></span>';
   document.body.appendChild(burst);
   setTimeout(() => burst.remove(), 700);
 });
@@ -800,15 +960,19 @@ function beep(freq, duration, vol) {
   } catch (e) {}
 }
 
-// ---------- Ambient constellation + drifting geometry background ----------
-(function initMistBackground() {
+// ---------- Signature background: a drafting compass tracing the channel ----------
+// A technical pen-plotter arm sweeps a slow arc from a fixed pivot, the way a
+// drafting compass lays out a circle on a blueprint — leaving a fading ink
+// trail behind it rather than a static line. Dimension-line annotations blip
+// in and out elsewhere, standing in for live measurements on the sheet.
+(function initDraftingBackground() {
   const canvas = document.getElementById('space-bg');
   if (!canvas || !canvas.getContext) return;
   const ctx = canvas.getContext('2d');
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduceMotion) return; // CSS already hides the canvas; skip the work entirely
 
-  let w = 0, h = 0, dpr = 1;
+  let w = 0, h = 0, dpr = 1, originX = 0, originY = 0, boardRadius = 0;
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     w = window.innerWidth; h = window.innerHeight;
@@ -817,87 +981,124 @@ function beep(freq, duration, vol) {
     canvas.style.width = w + 'px';
     canvas.style.height = h + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    rebuildMist();
+    originX = w * 0.80;
+    originY = h * 0.38;
+    boardRadius = Math.min(w, h) * 0.58;
   }
 
-  const JADE = [107, 199, 154];
-  const PLATINUM = [200, 205, 212];
+  const LINE = [220,238,251];   // blueprint linework, cyan-white
+  const REDLINE = [232,196,104]; // redline-pencil annotation color (gold)
 
-  // ---------- Soft drifting mist blobs — large, slow, low-contrast ----------
-  let mist = [];
-  function rebuildMist() {
-    const n = w < 700 ? 2 : 4;
-    mist = Array.from({ length: n }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      radius: Math.min(w, h) * (0.22 + Math.random() * 0.16),
-      driftAngle: Math.random() * Math.PI * 2,
-      driftSpeed: 0.012 + Math.random() * 0.02,
-      pulseFreq: 0.00018 + Math.random() * 0.00025,
-      pulsePhase: Math.random() * Math.PI * 2,
-      baseAlpha: 0.05 + Math.random() * 0.045,
-    }));
+  // ---------- Fixed construction circles, like guide circles left on a
+  // drafting board — quiet, unmoving, just enough to read as a worksheet. ----------
+  const GUIDE_FRACS = [0.32, 0.5, 0.68, 0.86, 1.0];
+  function drawGuides() {
+    ctx.strokeStyle = `rgba(${LINE[0]}, ${LINE[1]}, ${LINE[2]}, 0.05)`;
+    ctx.lineWidth = 1;
+    for (const f of GUIDE_FRACS) {
+      ctx.beginPath();
+      ctx.arc(originX, originY, boardRadius * f, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Cross-hair through the pivot, like a compass centerpoint mark.
+    ctx.beginPath();
+    ctx.moveTo(originX - 14, originY); ctx.lineTo(originX + 14, originY);
+    ctx.moveTo(originX, originY - 14); ctx.lineTo(originX, originY + 14);
+    ctx.stroke();
   }
 
-  function drawMist(m, t) {
-    const pulse = 0.75 + 0.25 * Math.sin(t * m.pulseFreq + m.pulsePhase);
-    const grad = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.radius);
-    grad.addColorStop(0, `rgba(${JADE[0]}, ${JADE[1]}, ${JADE[2]}, ${(m.baseAlpha * pulse).toFixed(3)})`);
-    grad.addColorStop(1, `rgba(${JADE[0]}, ${JADE[1]}, ${JADE[2]}, 0)`);
-    ctx.fillStyle = grad;
-    ctx.fillRect(m.x - m.radius, m.y - m.radius, m.radius * 2, m.radius * 2);
+  // ---------- The compass arm: a slow full rotation, trailed by a fading arc
+  // so it reads as ink being laid down rather than a spinning hand. ----------
+  const ARM_PERIOD = 46000; // ms per full revolution
+  const ARM_RADIUS_FRAC = 0.74;
+  const TRAIL_SPAN = Math.PI * 1.3; // how much of the circle stays visible behind the tip
+
+  function drawCompassArm(t) {
+    const angle = ((t % ARM_PERIOD) / ARM_PERIOD) * Math.PI * 2;
+    const r = boardRadius * ARM_RADIUS_FRAC;
+
+    // Fading trail: many short segments behind the tip, older = fainter.
+    const STEPS = 90;
+    for (let i = 0; i < STEPS; i++) {
+      const back = (i / STEPS) * TRAIL_SPAN;
+      const a0 = angle - back;
+      const a1 = angle - back - (TRAIL_SPAN / STEPS) * 1.4;
+      const alpha = 0.16 * (1 - i / STEPS);
+      ctx.beginPath();
+      ctx.arc(originX, originY, r, a1, a0);
+      ctx.strokeStyle = `rgba(${LINE[0]}, ${LINE[1]}, ${LINE[2]}, ${alpha.toFixed(3)})`;
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    }
+
+    // The rigid arm itself, pivot to tip.
+    const tipX = originX + Math.cos(angle) * r;
+    const tipY = originY + Math.sin(angle) * r;
+    ctx.beginPath();
+    ctx.moveTo(originX, originY);
+    ctx.lineTo(tipX, tipY);
+    ctx.strokeStyle = `rgba(${REDLINE[0]}, ${REDLINE[1]}, ${REDLINE[2]}, 0.18)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // The pencil point at the tip.
+    ctx.beginPath();
+    ctx.arc(tipX, tipY, 2.2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${REDLINE[0]}, ${REDLINE[1]}, ${REDLINE[2]}, 0.55)`;
+    ctx.fill();
   }
 
-  // ---------- Fireflies — rise slowly and flicker rather than drift/twinkle uniformly ----------
-  const COUNT = Math.max(22, Math.min(60, Math.floor((window.innerWidth * window.innerHeight) / 24000)));
-  function makeFirefly() {
-    return {
-      x: Math.random() * w,
-      y: Math.random() * h,
-      radius: 0.8 + Math.random() * 1.6,
-      sway: 6 + Math.random() * 14,
-      swayFreq: 0.0004 + Math.random() * 0.0009,
-      swayPhase: Math.random() * Math.PI * 2,
-      riseSpeed: 0.012 + Math.random() * 0.035,
-      color: Math.random() < 0.55 ? JADE : PLATINUM,
-      flickerFreq: 0.0015 + Math.random() * 0.004,
-      flickerPhase: Math.random() * Math.PI * 2,
-      baseAlpha: 0.2 + Math.random() * 0.35,
-      baseX: 0,
-    };
+  // ---------- Dimension-line annotations — short measurement lines with
+  // tick end-caps, blipping in and out at random spots on the sheet. ----------
+  let dims = [];
+  let nextDimAt = 0;
+  function maybeSpawnDim(t) {
+    if (t < nextDimAt) return;
+    nextDimAt = t + 2200 + Math.random() * 2600;
+    const x = Math.random() * w * 0.8 + w * 0.06;
+    const y = Math.random() * h * 0.8 + h * 0.06;
+    const len = 46 + Math.random() * 60;
+    const horizontal = Math.random() < 0.5;
+    dims.push({
+      x, y, len, horizontal,
+      start: t,
+      duration: 3400 + Math.random() * 1400,
+      color: Math.random() < 0.65 ? LINE : REDLINE,
+    });
+    if (dims.length > 5) dims.shift();
   }
-  const fireflies = [];
-  for (let i = 0; i < COUNT; i++) { const f = makeFirefly(); f.baseX = f.x; fireflies.push(f); }
+  function drawDims(t) {
+    dims = dims.filter(d => t - d.start < d.duration);
+    for (const d of dims) {
+      const progress = (t - d.start) / d.duration; // 0..1
+      const alpha = progress < 0.15 ? progress / 0.15 : progress > 0.75 ? (1 - progress) / 0.25 : 1;
+      const a = (alpha * 0.4).toFixed(3);
+      const half = d.len / 2;
+      ctx.strokeStyle = `rgba(${d.color[0]}, ${d.color[1]}, ${d.color[2]}, ${a})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      if (d.horizontal) {
+        ctx.moveTo(d.x - half, d.y); ctx.lineTo(d.x + half, d.y);
+        ctx.moveTo(d.x - half, d.y - 4); ctx.lineTo(d.x - half, d.y + 4);
+        ctx.moveTo(d.x + half, d.y - 4); ctx.lineTo(d.x + half, d.y + 4);
+      } else {
+        ctx.moveTo(d.x, d.y - half); ctx.lineTo(d.x, d.y + half);
+        ctx.moveTo(d.x - 4, d.y - half); ctx.lineTo(d.x + 4, d.y - half);
+        ctx.moveTo(d.x - 4, d.y + half); ctx.lineTo(d.x + 4, d.y + half);
+      }
+      ctx.stroke();
+    }
+  }
 
   resize();
   window.addEventListener('resize', resize);
 
   function step(t) {
     ctx.clearRect(0, 0, w, h);
-
-    for (const m of mist) {
-      m.x += Math.cos(m.driftAngle) * m.driftSpeed;
-      m.y += Math.sin(m.driftAngle) * m.driftSpeed;
-      const pad = m.radius;
-      if (m.x < -pad) m.x = w + pad; if (m.x > w + pad) m.x = -pad;
-      if (m.y < -pad) m.y = h + pad; if (m.y > h + pad) m.y = -pad;
-      drawMist(m, t);
-    }
-
-    for (const f of fireflies) {
-      f.baseX += 0; // horizontal position comes purely from the sway term below
-      f.y -= f.riseSpeed;
-      if (f.y < -10) { f.y = h + 10; f.baseX = Math.random() * w; }
-      const x = f.baseX + Math.sin(t * f.swayFreq + f.swayPhase) * f.sway;
-
-      const flicker = 0.5 + 0.5 * Math.sin(t * f.flickerFreq + f.flickerPhase);
-      const alpha = f.baseAlpha * (0.3 + 0.7 * Math.pow(flicker, 2));
-      ctx.beginPath();
-      ctx.arc(x, f.y, f.radius, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${f.color[0]}, ${f.color[1]}, ${f.color[2]}, ${alpha.toFixed(3)})`;
-      ctx.fill();
-    }
-
+    drawGuides();
+    drawCompassArm(t);
+    maybeSpawnDim(t);
+    drawDims(t);
     requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -910,17 +1111,12 @@ const buildTicker = () => tickerItems.map(t => `<span>${t}</span><span class="do
 track.innerHTML = buildTicker() + buildTicker();
 
 // ---------- Headline reveal ----------
-const lines = ["Where decisions", "move before", "the market does."];
+const lines = ["Department of English", "and Modern Languages", "Student Body, NSU"];
 const headlineEl = document.getElementById('headline');
-let hDelay = 0.2;
-lines.forEach((line) => {
+lines.forEach((line, i) => {
   const lineDiv = document.createElement('span'); lineDiv.className = 'line';
-  line.split(' ').forEach((word) => {
-    const span = document.createElement('span');
-    span.textContent = word + '\u00A0';
-    span.style.animationDelay = hDelay + 's'; hDelay += 0.11;
-    lineDiv.appendChild(span);
-  });
+  lineDiv.style.setProperty('--line-delay', (0.2 + i * 0.32) + 's');
+  lineDiv.textContent = line;
   headlineEl.appendChild(lineDiv);
 });
 
@@ -980,7 +1176,7 @@ sectionHeads.forEach(el => headObserver.observe(el));
 
 // ---------- Hero stats: count up when panel scrolls into view ----------
 (function heroStatCountUp() {
-  const nums = document.querySelectorAll('.hero-stat .num');
+  const nums = document.querySelectorAll('.hero-stat .num:not(#stat-profiles-num)');
   if (!nums.length) return;
   const obs = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -1003,6 +1199,25 @@ sectionHeads.forEach(el => headObserver.observe(el));
     });
   }, { threshold: 0.5 });
   nums.forEach(el => obs.observe(el));
+})();
+
+// ---------- Live profile count: how many executive accounts exist ----------
+(function heroProfileCount() {
+  const el = document.getElementById('stat-profiles-num');
+  if (!el) return;
+  fetch('/api/public/stats').then(r => r.ok ? r.json() : null).then(data => {
+    if (!data || typeof data.profileCount !== 'number') return;
+    const target = data.profileCount;
+    const duration = 900;
+    const start = performance.now();
+    function frame(now) {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased);
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }).catch(() => {});
 })();
 
 // ---------- Cursor glow that follows the pointer across the page ----------
@@ -1061,7 +1276,7 @@ sectionHeads.forEach(el => headObserver.observe(el));
 })();
 
 // =========================================================================
-// API client — talks to the real DEML Executive Channel backend (server.js)
+// API client — talks to the real DEML Student Body backend (server.js)
 // over REST + Socket.IO. Nothing is stored in this browser except the
 // session token; every user's data lives server-side and the server only
 // ever returns another user's bio/avatar/links to that user themself.
@@ -1141,6 +1356,15 @@ function dbResolvePasswordRequest(requestId, action) {
   return apiFetch('/api/password-requests/' + requestId + '/resolve', { method: 'POST', body: { action } });
 }
 
+// ---------- Profile requests (public submission + President review) ----------
+function dbSubmitProfileRequest({ name, email, phone, password }) {
+  return apiFetch('/api/profile-requests', { method: 'POST', body: { name, email, phone, password } });
+}
+function dbGetProfileRequests() { return apiFetch('/api/profile-requests'); }
+function dbResolveProfileRequest(requestId, action) {
+  return apiFetch('/api/profile-requests/' + requestId + '/resolve', { method: 'POST', body: { action } });
+}
+
 // ---------- To-Do ----------
 function dbGetTodos() { return apiFetch('/api/todos'); }
 function dbAddTodo(content) { return apiFetch('/api/todos', { method: 'POST', body: { content } }); }
@@ -1153,10 +1377,21 @@ function dbCreateDirectConversation(otherUserId) {
   return apiFetch('/api/conversations/direct', { method: 'POST', body: { otherUserId } });
 }
 function dbGetMessages(conversationId) { return apiFetch('/api/conversations/' + conversationId + '/messages'); }
+function dbSearch(q) { return apiFetch('/api/search?q=' + encodeURIComponent(q)); }
 
 // ---------- Meetings ----------
 function dbGetMeetings() { return apiFetch('/api/meetings'); }
 function dbHostMeeting(title) { return apiFetch('/api/meetings', { method: 'POST', body: { title } }); }
+
+// ---------- Announcements ----------
+function dbGetAnnouncements() { return apiFetch('/api/announcements'); }
+function dbPostAnnouncement({ title, body }) { return apiFetch('/api/announcements', { method: 'POST', body: { title, body } }); }
+function dbDeleteAnnouncement(id) { return apiFetch('/api/announcements/' + id, { method: 'DELETE' }); }
+
+function dbGetEvents() { return apiFetch('/api/events'); }
+function dbPostEvent({ title, description, location, startsAt }) { return apiFetch('/api/events', { method: 'POST', body: { title, description, location, startsAt } }); }
+function dbDeleteEvent(id) { return apiFetch('/api/events/' + id, { method: 'DELETE' }); }
+function dbRsvpEvent(id, attending) { return apiFetch('/api/events/' + id + '/rsvp', { method: 'POST', body: { attending } }); }
 
 // =========================================================================
 // Realtime — a real Socket.IO connection to the backend, authenticated with
@@ -1223,6 +1458,35 @@ document.getElementById('open-president').addEventListener('click', () => presid
 document.getElementById('close-president').addEventListener('click', () => presidentOverlay.classList.remove('open'));
 presidentOverlay.addEventListener('click', (e) => { if (e.target === presidentOverlay) presidentOverlay.classList.remove('open'); });
 
+// ---------- Request-a-profile overlay wiring (public) ----------
+const profileRequestOverlay = document.getElementById('profile-request-overlay');
+document.getElementById('open-profile-request').addEventListener('click', () => profileRequestOverlay.classList.add('open'));
+document.getElementById('close-profile-request').addEventListener('click', () => profileRequestOverlay.classList.remove('open'));
+profileRequestOverlay.addEventListener('click', (e) => { if (e.target === profileRequestOverlay) profileRequestOverlay.classList.remove('open'); });
+
+const profileRequestForm = document.getElementById('profile-request-form');
+const profileRequestStatus = document.getElementById('profile-request-status');
+const profileRequestSubmit = document.getElementById('profile-request-submit');
+profileRequestForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('pr-name').value.trim();
+  const email = document.getElementById('pr-email').value.trim();
+  const phone = document.getElementById('pr-phone').value.trim();
+  const password = document.getElementById('pr-password').value;
+  if (!name || !email || !phone || !password) { profileRequestStatus.textContent = 'All fields are required.'; return; }
+  if (password.length < 8) { profileRequestStatus.textContent = 'Password must be at least 8 characters.'; return; }
+  profileRequestSubmit.classList.add('pulsing'); profileRequestStatus.textContent = 'Sending…';
+  try {
+    await dbSubmitProfileRequest({ name, email, phone, password });
+    profileRequestStatus.textContent = 'Sent — the President will review and contact you soon.';
+    profileRequestForm.reset();
+  } catch (err) {
+    profileRequestStatus.textContent = err.message;
+  } finally {
+    profileRequestSubmit.classList.remove('pulsing');
+  }
+});
+
 const presidentForm = document.getElementById('president-form');
 const presidentStatus = document.getElementById('president-status');
 const presidentSubmit = document.getElementById('president-submit');
@@ -1232,6 +1496,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (overlay.classList.contains('open')) { overlay.classList.remove('open'); return; }
   if (presidentOverlay.classList.contains('open')) { presidentOverlay.classList.remove('open'); return; }
+  if (profileRequestOverlay.classList.contains('open')) { profileRequestOverlay.classList.remove('open'); return; }
   if (!document.getElementById('call-overlay').classList.contains('hidden')) { minimizeCall(); return; }
 });
 
@@ -1277,13 +1542,28 @@ function enterDashboard() {
   } else {
     execTab.classList.add('hidden');
   }
+  document.getElementById('announcement-form').style.display = session.user.role === 'PRESIDENT' ? 'flex' : 'none';
+  document.getElementById('event-form').style.display = session.user.role === 'PRESIDENT' ? 'flex' : 'none';
   restoreActiveTab();
 
   connectSocket();
   loadProfile();
+  loadAnnouncements();
+  loadEvents();
   loadTodos();
   loadDirectoryAndConversations();
   loadMeetings();
+}
+
+function renderExecOnlineDots() {
+  document.querySelectorAll('#dash-exec-list .exec-row').forEach(row => {
+    const id = row.dataset.id;
+    const online = isUserOnline(id);
+    const dot = row.querySelector('.status-dot');
+    const label = row.querySelector('.status-label');
+    if (dot) dot.className = 'status-dot' + (online ? ' online' : '');
+    if (label) { label.className = 'status-label' + (online ? ' online' : ''); label.textContent = online ? 'Active now' : 'Offline'; }
+  });
 }
 
 // ---------- Manage Executives (President only) ----------
@@ -1291,10 +1571,11 @@ async function loadExecManagement() {
   const list = document.getElementById('dash-exec-list');
   try {
     const execs = await dbGetExecutives();
+    execs.forEach(x => onlineStatus.set(x.id, !!x.online));
     list.innerHTML = execs.map(x => `
       <div class="exec-row" data-id="${x.id}">
-        <span class="name">${escapeHtml(x.displayName)}</span>
-        <span class="desig">${escapeHtml(x.designation)} · ${x.role}</span>
+        <span class="name"><span class="status-dot ${isUserOnline(x.id) ? 'online' : ''}" style="margin-right:8px;"></span>${escapeHtml(x.displayName)}</span>
+        <span class="desig">${escapeHtml(x.designation)} · ${x.role} · <span class="status-label ${isUserOnline(x.id) ? 'online' : ''}">${isUserOnline(x.id) ? 'Active now' : 'Offline'}</span></span>
         ${x.role !== 'PRESIDENT' ? `<button class="btn small danger" data-remove="${x.id}" type="button" style="margin-left:12px;">Remove</button>` : ''}
       </div>`).join('');
     list.querySelectorAll('[data-remove]').forEach(btn => {
@@ -1315,6 +1596,7 @@ async function loadExecManagement() {
     list.innerHTML = `<p class="form-status">${err.message}</p>`;
   }
   renderPasswordRequests();
+  renderProfileRequests();
 }
 
 const dashCreateExecForm = document.getElementById('dash-create-exec-form');
@@ -1341,8 +1623,7 @@ async function renderPasswordRequests() {
   const list = document.getElementById('password-requests-list');
   if (!list) return;
   const requests = await dbGetPasswordRequests();
-  const pendingCount = requests.filter(r => r.status === 'pending').length;
-  if (pendingCount > 0) showTabBadge('execs'); else clearTabBadge('execs');
+  updateExecsBadge();
   if (!requests.length) { list.innerHTML = '<p class="president-note" style="margin:0">No requests yet.</p>'; return; }
   list.innerHTML = requests.map(r => `
     <div class="exec-row" data-id="${r.id}" style="flex-wrap:wrap;gap:6px;">
@@ -1378,9 +1659,62 @@ async function renderPasswordRequests() {
   });
 }
 
+// Combines password-change requests and profile requests into one badge
+// decision, since both live under the "Manage Executives" tab and either
+// on its own shouldn't clear a badge the other one earned.
+async function updateExecsBadge() {
+  try {
+    const [pwReqs, profileReqs] = await Promise.all([dbGetPasswordRequests(), dbGetProfileRequests()]);
+    const anyPending = pwReqs.some(r => r.status === 'pending') || profileReqs.some(r => r.status === 'pending');
+    if (anyPending) showTabBadge('execs'); else clearTabBadge('execs');
+  } catch (e) { /* badge is a nice-to-have, not critical */ }
+}
+
+// ---------- Profile requests (President reviews, in Manage Executives) ----------
+async function renderProfileRequests() {
+  const list = document.getElementById('profile-requests-list');
+  if (!list) return;
+  const requests = await dbGetProfileRequests();
+  updateExecsBadge();
+  if (!requests.length) { list.innerHTML = '<p class="president-note" style="margin:0">No profile requests yet.</p>'; return; }
+  list.innerHTML = requests.map(r => `
+    <div class="exec-row" data-id="${r.id}" style="flex-wrap:wrap;gap:6px;">
+      <span class="name">${escapeHtml(r.name)}</span>
+      <span class="desig" data-detail>${escapeHtml(r.email)} · ${escapeHtml(r.phone)} · ${new Date(r.createdAt).toLocaleString()}${r.status !== 'pending' ? ' · ' + r.status.toUpperCase() : ''}</span>
+      ${r.status === 'pending' ? `
+        <span style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn small" data-reveal type="button">Show requested password</button>
+          <button class="btn small solid" data-contacted type="button">Mark contacted</button>
+          <button class="btn small danger" data-dismiss type="button">Dismiss</button>
+        </span>` : ''}
+    </div>`).join('');
+
+  list.querySelectorAll('[data-reveal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('.exec-row');
+      const req = requests.find(r => r.id === row.dataset.id);
+      const detail = row.querySelector('[data-detail]');
+      detail.textContent = req.email + ' · ' + req.phone + ' · Requested password: ' + req.password;
+    });
+  });
+  list.querySelectorAll('[data-contacted]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try { await dbResolveProfileRequest(btn.closest('.exec-row').dataset.id, 'contacted'); renderProfileRequests(); }
+      catch (err) { alert(err.message); }
+    });
+  });
+  list.querySelectorAll('[data-dismiss]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Dismiss this request? This cannot be undone.')) return;
+      try { await dbResolveProfileRequest(btn.closest('.exec-row').dataset.id, 'dismiss'); renderProfileRequests(); }
+      catch (err) { alert(err.message); }
+    });
+  });
+}
+
 function placeholderAvatar() {
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#15171B"/><circle cx="60" cy="46" r="22" fill="#2a2d33"/><rect x="20" y="76" width="80" height="34" rx="17" fill="#2a2d33"/></svg>'
+    '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#122C48"/><circle cx="60" cy="46" r="22" fill="#1A3B60"/><rect x="20" y="76" width="80" height="34" rx="17" fill="#1A3B60"/></svg>'
   );
 }
 
@@ -1397,6 +1731,8 @@ function activateTab(tabName) {
   panel.classList.add('active');
   try { sessionStorage.setItem(ACTIVE_TAB_KEY, tabName); } catch (e) {}
   if (tabName === 'messages') clearTabBadge('messages');
+  if (tabName === 'announcements') clearTabBadge('announcements');
+  if (tabName === 'events') clearTabBadge('events');
   return true;
 }
 function restoreActiveTab() {
@@ -1425,6 +1761,60 @@ document.getElementById('sign-out').addEventListener('click', () => {
 
 function connectSocket() {
   socket = createRealtimeSocket();
+
+  socket.on('presence:update', ({ userId, online }) => {
+    onlineStatus.set(userId, online);
+    const d = directory.find(x => x.id === userId);
+    if (d) d.online = online;
+    renderContactList();
+    updateThreadStatus();
+    if (document.querySelector('.dash-tab[data-tab="execs"]')?.classList.contains('active')) {
+      renderExecOnlineDots();
+    }
+  });
+
+  socket.on('announcement:new', (a) => {
+    announcements = announcements.filter(x => x.id !== a.id);
+    announcements.unshift(a);
+    renderAnnouncements();
+    const announcementsTabActive = document.querySelector('.dash-tab[data-tab="announcements"]').classList.contains('active');
+    if (!announcementsTabActive && a.author?.id !== session.user.id) {
+      showTabBadge('announcements');
+      beep(600, 120, 0.05);
+    }
+  });
+  socket.on('announcement:removed', ({ id }) => {
+    announcements = announcements.filter(x => x.id !== id);
+    renderAnnouncements();
+  });
+
+  socket.on('event:new', (ev) => {
+    events = events.filter(x => x.id !== ev.id);
+    events.push(ev);
+    events.sort((a, b) => a.startsAt - b.startsAt);
+    renderEvents();
+    const eventsTabActive = document.querySelector('.dash-tab[data-tab="events"]').classList.contains('active');
+    if (!eventsTabActive && ev.author?.id !== session.user.id) {
+      showTabBadge('events');
+      beep(600, 120, 0.05);
+    }
+  });
+  socket.on('event:updated', (ev) => {
+    events = events.map(x => x.id === ev.id ? ev : x);
+    renderEvents();
+  });
+  socket.on('event:removed', ({ id }) => {
+    events = events.filter(x => x.id !== id);
+    renderEvents();
+  });
+
+  // Only the President ever receives this (server only emits it to President
+  // sockets), so it's safe to just refresh the requests list unconditionally.
+  socket.on('profile-request:new', () => {
+    renderProfileRequests();
+    const execsTabActive = document.querySelector('.dash-tab[data-tab="execs"]').classList.contains('active');
+    if (!execsTabActive) beep(600, 120, 0.05);
+  });
 
   socket.on('message:new', (message) => {
     if (message.conversationId === activeConversationId) {
@@ -1559,6 +1949,116 @@ async function renderPasswordSection() {
   }
 }
 
+// ---------- Announcements ----------
+let announcements = [];
+async function loadAnnouncements() { announcements = await dbGetAnnouncements(); renderAnnouncements(); }
+function renderAnnouncements() {
+  const list = document.getElementById('announcement-list');
+  if (!announcements.length) { list.innerHTML = '<p class="president-note" style="margin:0">No announcements yet.</p>'; return; }
+  list.innerHTML = announcements.map(a => `
+    <div class="announcement-card" data-id="${a.id}">
+      <div class="a-head">
+        <span class="a-title">${escapeHtml(a.title)}</span>
+        <span class="a-meta">${a.author ? escapeHtml(a.author.displayName) : 'Unknown'} · ${new Date(a.createdAt).toLocaleString()}</span>
+      </div>
+      <div class="a-body">${escapeHtml(a.body)}</div>
+      ${session.user.role === 'PRESIDENT' ? '<button class="a-del" data-del type="button">Remove</button>' : ''}
+    </div>`).join('');
+  list.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const card = btn.closest('.announcement-card');
+      if (!confirm('Remove this announcement? This cannot be undone.')) return;
+      try { await dbDeleteAnnouncement(card.dataset.id); }
+      catch (err) { alert(err.message); }
+    });
+  });
+}
+document.getElementById('announcement-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = document.getElementById('announcement-title').value.trim();
+  const body = document.getElementById('announcement-body').value.trim();
+  const status = document.getElementById('announcement-status');
+  if (!title || !body) { status.textContent = 'Title and message are required.'; return; }
+  status.textContent = 'Posting…';
+  try {
+    await dbPostAnnouncement({ title, body });
+    document.getElementById('announcement-form').reset();
+    status.textContent = '';
+  } catch (err) {
+    status.textContent = err.message;
+  }
+});
+
+// ---------- Events ----------
+let events = [];
+async function loadEvents() { events = await dbGetEvents(); renderEvents(); }
+function formatEventWhen(ts) {
+  return new Date(ts).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+function renderEvents() {
+  const list = document.getElementById('event-list');
+  if (!events.length) { list.innerHTML = '<p class="president-note" style="margin:0">No events scheduled yet.</p>'; return; }
+  const now = Date.now();
+  const upcoming = events.filter(e => e.startsAt >= now).sort((a, b) => a.startsAt - b.startsAt);
+  const past = events.filter(e => e.startsAt < now).sort((a, b) => b.startsAt - a.startsAt);
+  const ordered = upcoming.concat(past);
+  list.innerHTML = ordered.map(ev => {
+    const going = ev.attendees.some(u => u.id === session.user.id);
+    const isPast = ev.startsAt < now;
+    return `
+    <div class="event-card${isPast ? ' past' : ''}" data-id="${ev.id}">
+      <div class="e-head">
+        <span class="e-title">${escapeHtml(ev.title)}</span>
+        <span class="e-when">${isPast ? 'Past · ' : ''}${formatEventWhen(ev.startsAt)}</span>
+      </div>
+      <div class="e-meta">${ev.location ? escapeHtml(ev.location) + ' · ' : ''}Posted by ${ev.author ? escapeHtml(ev.author.displayName) : 'Unknown'}</div>
+      ${ev.description ? `<div class="e-body">${escapeHtml(ev.description)}</div>` : ''}
+      <div class="e-foot">
+        <span class="e-attendees">${ev.attendees.length ? ev.attendees.length + ' going' : 'No one has RSVP\'d yet'}</span>
+        <div class="e-actions">
+          <button class="btn small rsvp${going ? ' going' : ''}" type="button" data-rsvp>${going ? "You're going" : "I'm going"}</button>
+          ${session.user.role === 'PRESIDENT' ? '<button class="e-del" data-del type="button">Remove</button>' : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-rsvp]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const card = btn.closest('.event-card');
+      const currentlyGoing = btn.classList.contains('going');
+      btn.disabled = true;
+      try { await dbRsvpEvent(card.dataset.id, !currentlyGoing); }
+      catch (err) { alert(err.message); }
+      finally { btn.disabled = false; }
+    });
+  });
+  list.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const card = btn.closest('.event-card');
+      if (!confirm('Remove this event? This cannot be undone.')) return;
+      try { await dbDeleteEvent(card.dataset.id); }
+      catch (err) { alert(err.message); }
+    });
+  });
+}
+document.getElementById('event-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = document.getElementById('event-title').value.trim();
+  const startsAtLocal = document.getElementById('event-starts').value;
+  const location = document.getElementById('event-location').value.trim();
+  const description = document.getElementById('event-description').value.trim();
+  const status = document.getElementById('event-status');
+  if (!title || !startsAtLocal) { status.textContent = 'Title and date/time are required.'; return; }
+  status.textContent = 'Posting…';
+  try {
+    await dbPostEvent({ title, description, location, startsAt: new Date(startsAtLocal).toISOString() });
+    document.getElementById('event-form').reset();
+    status.textContent = '';
+  } catch (err) {
+    status.textContent = err.message;
+  }
+});
+
 // ---------- To-Do ----------
 async function loadTodos() { renderTodos(await dbGetTodos()); }
 function renderTodos(todos) {
@@ -1598,12 +2098,15 @@ let directory = [];
 let conversations = [];
 let activeConversationId = null;
 let activeConversation = null;
+const onlineStatus = new Map(); // userId -> bool, kept live via 'presence:update'
 
 async function loadDirectoryAndConversations() {
   directory = await dbGetExecutives();
+  directory.forEach(x => onlineStatus.set(x.id, !!x.online));
   await refreshConvoList();
   renderContactList();
 }
+function isUserOnline(userId) { return !!onlineStatus.get(userId); }
 async function refreshConvoList() {
   conversations = await dbGetConversations();
   renderConvoList();
@@ -1616,7 +2119,8 @@ function renderConvoList() {
   const list = document.getElementById('convo-list');
   list.innerHTML = conversations.map(c => {
     const label = c.isGroup ? (c.title || 'Group') : (otherParticipant(c)?.displayName || 'Unknown');
-    const last = c.messages && c.messages[0] ? c.messages[0].body : 'No messages yet';
+    const lastMsg = c.messages && c.messages[0];
+    const last = lastMsg ? (lastMsg.body || (lastMsg.attachment ? '📎 ' + lastMsg.attachment.name : 'No messages yet')) : 'No messages yet';
     return `<div class="msg-convo ${c.id === activeConversationId ? 'active' : ''}" data-id="${c.id}">
       <div><div class="msg-name">${escapeHtml(label)}</div><div class="msg-sub">${escapeHtml(last)}</div></div>
     </div>`;
@@ -1627,6 +2131,7 @@ function renderContactList() {
   const list = document.getElementById('contact-list');
   list.innerHTML = directory.filter(x => x.id !== session.user.id).map(x => `
     <div class="msg-contact" data-id="${x.id}">
+      <span class="status-dot ${isUserOnline(x.id) ? 'online' : ''}" title="${isUserOnline(x.id) ? 'Active now' : 'Offline'}"></span>
       <div><div class="msg-name">${escapeHtml(x.displayName)}</div><div class="msg-sub">${escapeHtml(x.designation)}</div></div>
     </div>`).join('');
   list.querySelectorAll('.msg-contact').forEach(el => el.addEventListener('click', async () => {
@@ -1653,12 +2158,21 @@ async function openConversation(id) {
 
   thread.innerHTML = `
     <div class="msg-thread-head">
-      <span style="font-family:var(--display)">${escapeHtml(title)}</span>
+      <span class="msg-name-row">
+        <span style="font-family:var(--display)">${escapeHtml(title)}</span>
+        ${!activeConversation.isGroup && other ? `<span class="thread-status" id="thread-status"></span>` : ''}
+      </span>
       ${!activeConversation.isGroup ? '<span class="call-header-actions"><button class="btn small" id="video-call-btn" title="Video call">Video call</button><button class="btn small" id="audio-call-btn" title="Audio call">Audio call</button></span>' : ''}
     </div>
     <div class="msg-scroll" id="msg-scroll"></div>
     <div class="typing-note" id="typing-note"></div>
-    <div class="msg-input-row"><input type="text" id="msg-input" placeholder="Type a message…" /><button class="btn solid small" id="msg-send">Send</button></div>
+    <div class="attach-preview" id="attach-preview" style="display:none;"></div>
+    <div class="msg-input-row">
+      <button class="btn small" id="attach-btn" type="button" title="Attach a file">📎</button>
+      <input type="file" id="attach-input" style="display:none;" />
+      <input type="text" id="msg-input" placeholder="Type a message…" />
+      <button class="btn solid small" id="msg-send">Send</button>
+    </div>
   `;
 
   const messages = await dbGetMessages(id);
@@ -1672,20 +2186,69 @@ async function openConversation(id) {
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendActiveMessage(); else socket.emit('typing:start', { conversationId: id }); });
   input.addEventListener('blur', () => socket.emit('typing:stop', { conversationId: id }));
 
+  window.__pendingChatAttachment = null;
+  document.getElementById('attach-btn').addEventListener('click', () => document.getElementById('attach-input').click());
+  document.getElementById('attach-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const MAX_BYTES = 8 * 1024 * 1024;
+    if (file.size > MAX_BYTES) { alert('Attachments must be 8MB or smaller.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      window.__pendingChatAttachment = { name: file.name, mimeType: file.type || 'application/octet-stream', size: file.size, dataUrl: reader.result };
+      renderAttachPreview();
+    };
+    reader.onerror = () => alert('Could not read that file. Please try again.');
+    reader.readAsDataURL(file);
+  });
+
   if (!activeConversation.isGroup && other) {
     document.getElementById('video-call-btn').addEventListener('click', () => startCall(other.id, other.displayName, id, true));
     document.getElementById('audio-call-btn').addEventListener('click', () => startCall(other.id, other.displayName, id, false));
   }
+  updateThreadStatus();
+}
+function updateThreadStatus() {
+  const el = document.getElementById('thread-status');
+  if (!el || !activeConversation || activeConversation.isGroup) return;
+  const other = otherParticipant(activeConversation);
+  if (!other) return;
+  const online = isUserOnline(other.id);
+  el.innerHTML = `<span class="status-dot ${online ? 'online' : ''}"></span><span class="status-label ${online ? 'online' : ''}">${online ? 'Active now' : 'Offline'}</span>`;
+}
+
+function renderAttachPreview() {
+  const box = document.getElementById('attach-preview');
+  if (!box) return;
+  const att = window.__pendingChatAttachment;
+  if (!att) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'flex';
+  box.innerHTML = `<span class="attach-chip">📎 ${escapeHtml(att.name)} <span class="attach-size">(${formatFileSize(att.size)})</span></span>
+    <button type="button" id="attach-clear" class="attach-clear" title="Remove attachment">✕</button>`;
+  document.getElementById('attach-clear').addEventListener('click', () => {
+    window.__pendingChatAttachment = null;
+    renderAttachPreview();
+  });
+}
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 function sendActiveMessage() {
   const input = document.getElementById('msg-input');
   const body = input.value.trim();
-  if (!body || !activeConversationId) return;
-  socket.emit('message:send', { conversationId: activeConversationId, body }, (ack) => {
+  const attachment = window.__pendingChatAttachment;
+  if (!body && !attachment) return;
+  if (!activeConversationId) return;
+  socket.emit('message:send', { conversationId: activeConversationId, body, attachment }, (ack) => {
     if (!ack.ok) alert(ack.error);
   });
   input.value = '';
+  window.__pendingChatAttachment = null;
+  renderAttachPreview();
   socket.emit('typing:stop', { conversationId: activeConversationId });
 }
 
@@ -1697,9 +2260,21 @@ function appendBubble(message) {
   div.className = 'bubble ' + (mine ? 'mine' : 'theirs');
   div.dataset.id = message.id;
   const senderLabel = !mine && activeConversation && activeConversation.isGroup ? (message.sender?.displayName + ': ') : '';
-  div.innerHTML = `${escapeHtml(senderLabel)}${escapeHtml(message.body)}<span class="meta">${new Date(message.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}${mine ? ' <span class="tick sent" data-tick>✓</span>' : ''}</span>`;
+  const bodyHtml = message.body ? escapeHtml(message.body) : '';
+  const attachmentHtml = renderAttachmentHtml(message.attachment);
+  div.innerHTML = `${escapeHtml(senderLabel)}${bodyHtml}${attachmentHtml}<span class="meta">${new Date(message.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}${mine ? ' <span class="tick sent" data-tick>✓</span>' : ''}</span>`;
   scroll.appendChild(div);
   scroll.scrollTop = scroll.scrollHeight;
+}
+function renderAttachmentHtml(attachment) {
+  if (!attachment) return '';
+  const isImage = attachment.mimeType && attachment.mimeType.startsWith('image/');
+  const name = escapeHtml(attachment.name || 'file');
+  const sizeLabel = typeof attachment.size === 'number' ? formatFileSize(attachment.size) : '';
+  if (isImage) {
+    return `<div class="attach-block"><a href="${attachment.dataUrl}" download="${name}" target="_blank" rel="noopener"><img class="attach-image" src="${attachment.dataUrl}" alt="${name}" /></a></div>`;
+  }
+  return `<div class="attach-block"><a class="attach-file-chip" href="${attachment.dataUrl}" download="${name}">📎 ${name}${sizeLabel ? ' <span class="attach-size">(' + sizeLabel + ')</span>' : ''}</a></div>`;
 }
 function setTick(messageId, state) {
   const bubble = document.querySelector(`.bubble[data-id="${messageId}"] [data-tick]`);
@@ -1708,6 +2283,84 @@ function setTick(messageId, state) {
   if (state === 'read') { bubble.textContent = '✓✓'; bubble.classList.add('read'); }
 }
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+// ---------- Search ----------
+let searchDebounceTimer = null;
+const searchInput = document.getElementById('search-input');
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounceTimer);
+    const q = searchInput.value.trim();
+    const status = document.getElementById('search-status');
+    const results = document.getElementById('search-results');
+    if (!q) { status.textContent = ''; results.innerHTML = ''; return; }
+    status.textContent = 'Searching…';
+    searchDebounceTimer = setTimeout(async () => {
+      try {
+        const data = await dbSearch(q);
+        renderSearchResults(data, q);
+      } catch (err) {
+        status.textContent = err.message;
+      }
+    }, 300);
+  });
+}
+
+function highlightMatch(text, q) {
+  const escaped = escapeHtml(text);
+  if (!q) return escaped;
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return escaped;
+  const before = escapeHtml(text.slice(0, idx));
+  const match = escapeHtml(text.slice(idx, idx + q.length));
+  const after = escapeHtml(text.slice(idx + q.length));
+  return `${before}<mark>${match}</mark>${after}`;
+}
+
+function renderSearchResults(data, q) {
+  const status = document.getElementById('search-status');
+  const results = document.getElementById('search-results');
+  const total = data.messages.length + data.announcements.length;
+  status.textContent = total ? `${total} result${total === 1 ? '' : 's'}` : 'No results.';
+
+  const messageItems = data.messages.map(m => `
+    <div class="search-result" data-type="message" data-convo="${m.conversationId}">
+      <div class="sr-head">
+        <span class="sr-tag">Message</span>
+        <span class="sr-context">${escapeHtml(m.conversationLabel)} · ${escapeHtml(m.sender?.displayName || 'Unknown')}</span>
+        <span class="sr-time">${new Date(m.createdAt).toLocaleString()}</span>
+      </div>
+      <div class="sr-body">${highlightMatch(m.body, q)}</div>
+    </div>`).join('');
+
+  const announcementItems = data.announcements.map(a => `
+    <div class="search-result" data-type="announcement" data-id="${a.id}">
+      <div class="sr-head">
+        <span class="sr-tag">Announcement</span>
+        <span class="sr-context">${escapeHtml(a.author?.displayName || 'Unknown')}</span>
+        <span class="sr-time">${new Date(a.createdAt).toLocaleString()}</span>
+      </div>
+      <div class="sr-title">${highlightMatch(a.title, q)}</div>
+      <div class="sr-body">${highlightMatch(a.body, q)}</div>
+    </div>`).join('');
+
+  results.innerHTML = messageItems + announcementItems;
+
+  results.querySelectorAll('.search-result[data-type="message"]').forEach(el => {
+    el.addEventListener('click', async () => {
+      activateTab('messages');
+      if (!conversations.find(c => c.id === el.dataset.convo)) await refreshConvoList();
+      openConversation(el.dataset.convo);
+    });
+  });
+  results.querySelectorAll('.search-result[data-type="announcement"]').forEach(el => {
+    el.addEventListener('click', () => {
+      activateTab('announcements');
+      const card = document.querySelector(`.announcement-card[data-id="${el.dataset.id}"]`);
+      if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.classList.add('flash'); setTimeout(() => card.classList.remove('flash'), 1500); }
+    });
+  });
+}
 
 // ---------- Show/Hide password toggles (works for static and dynamically-rendered fields) ----------
 document.addEventListener('click', (e) => {
